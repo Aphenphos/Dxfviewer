@@ -7,6 +7,13 @@ function initRenderer(fov, near, far, rotation) {
     return new renderer(cam);
 }
 
+function setCameraPos(x,y,z) {
+    console.log(x,y)
+    Scene.renderer.camera.x = x;
+    Scene.renderer.camera.y = y;
+    Scene.renderer.camera.z = z;
+}
+
 function initScene() {
     const drawingCanvas = document.getElementById("drawing-canvas");
     const ctx = drawingCanvas.getContext("2d");
@@ -14,6 +21,18 @@ function initScene() {
     Scene.context = ctx;
     Scene.renderer = initRenderer(90,0.1,1000,0);
     resizeCanvas();
+}
+
+function addEntityToScene(ent) {
+    Scene.entities.push(ent);
+}
+
+function wipeEntities() {
+    Scene.entities = [];
+}
+
+function centerScene() {
+
 }
 
 function drawPoint(point) {
@@ -27,6 +46,13 @@ function drawLine(p1,p2) {
     Scene.context.beginPath();
     Scene.context.moveTo(p1.x,p1.y);
     Scene.context.lineTo(p2.x,p2.y);
+    Scene.context.stroke();
+    Scene.context.closePath();
+}
+
+function drawArc(arc) {
+    Scene.context.beginPath();
+    Scene.context.arc(arc.center.x, arc.center.y, Math.abs(arc.radius), arc.startAngle, arc.endAngle, false);
     Scene.context.stroke();
     Scene.context.closePath();
 }
@@ -64,13 +90,50 @@ function drawArcFromBulge(p1,p2) {
     } 
 }
 
+function renderEntities() {
+    for (let i = 0; i < Scene.entities.length; i++) {
+        let curEnt = Scene.entities[i];
+        switch (curEnt.type) {
+            case("LWPOLYLINE"): {
+                for (let j = 0; j < curEnt.vertices.length; j++) {
+                    let k = j+1
+                    if (k >= curEnt.vertices.length) {
+                        k=0;
+                    }
+                    drawPoint(curEnt.vertices[j]);
+                    if (curEnt.vertices[j].bulge) {
+                        drawArcFromBulge(curEnt.vertices[j], curEnt.vertices[k]);
+                    } else {
+                        drawLine(curEnt.vertices[j], curEnt.vertices[k]);
+                    }
+                }
+                break;
+            }
+            case("LINE"): {
+                drawLine(curEnt.vertices[0], curEnt.vertices[1]);
+                break;
+            }
+            case("ARC"): {
+                drawArc(curEnt);
+            }
+        }
+    }
+}
+
 window.addEventListener("resize", resizeCanvas, false);
 //will need to add function to re render all entities.
+
 function resizeCanvas() {
-  Scene.canvas.width = window.innerWidth * .9;
-  Scene.canvas.height = window.innerHeight *.9;
+    Scene.canvas.width = window.innerWidth * .9;
+    Scene.canvas.height = window.innerHeight *.9;
+    updateCanvas();
+}
+
+function updateCanvas() {
+    console.log(Scene);
+    renderEntities();
 }
 
 
 
-export { initScene, drawPoint, drawArcFromBulge, drawLine }
+export { initScene, drawPoint, drawArc, drawArcFromBulge, drawLine, addEntityToScene, renderEntities, wipeEntities, setCameraPos }

@@ -1,5 +1,6 @@
 import { handleDXF } from "./src/parse";
 import { initScene } from "./src/render";
+
 initScene();
 const inFile = document.getElementById("file-in");
 inFile.addEventListener("change", handleFileChange, false);

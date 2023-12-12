@@ -42,9 +42,9 @@ class renderer {
 }
 
 class scene {
-    canvas; context; renderer;
-    constructor(canvas = null, context = null, renderer = null) {
-        this.canvas = canvas; this.context = context; this.renderer = renderer;
+    canvas; context; renderer; entities;
+    constructor(canvas = null, context = null, renderer = null, entities = []) {
+        this.canvas = canvas; this.context = context; this.renderer = renderer; this.entities = entities;
     }
 }
 
