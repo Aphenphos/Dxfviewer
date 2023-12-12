@@ -1,0 +1,18 @@
+{
+  "name": "dxfviewer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "dxf": "^5.1.0",
+    "dxf-parser": "^1.1.2"
+  }
+}
