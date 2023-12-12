@@ -32,18 +32,36 @@ function drawLine(p1,p2) {
 }
 
 function drawArcFromBulge(p1,p2) {
-    const dist = Math.sqrt(Math.pow(p2.x - p1.x,2) + Math.pow(p2.y - p1.y, 2));
-    const rad = (dist / 2) / Math.abs(p1.bulge);
-    const center = new vec2d(
-        
-    )
-    const startAngle = Math.atan2(p1.y - center.y, p1.x - p1.x);
-    const endAngle = Math.atan2(p2.y - center.y, p2.x = center.x);
+    function distance(p1, p2) {
+        let dx = p2.x - p1.x;
+        let dy = p2.y - p1.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
 
-    Scene.context.beginPath();
-    Scene.context.arc(center.x, center.y, rad, startAngle, endAngle, true);
-    Scene.context.stroke();
-    Scene.context.closePath();
+    function angle(p1, p2) {
+        return Math.atan2(p2.y - p1.y, p2.x - p1.x);
+    }
+
+    function polar(p, a, r) {
+        return new vec2d(p.x + r * Math.cos(a), p.y + r * Math.sin(a));
+    }
+    
+    let a = 2 * Math.atan(p1.bulge);
+    let r = distance(p1, p2) / (2 * Math.sin(a));
+    let c = polar(p1, Math.PI / 2 - a + angle(p1, p2), r);
+
+    if (p1.bulge < 0) {
+        console.log(c.x, c.y, Math.abs(r), angle(c,p2), angle(c,p1))
+        Scene.context.beginPath();
+        Scene.context.arc(c.x, c.y, Math.abs(r), angle(c,p2), angle(c,p1), false);
+        Scene.context.stroke();
+        Scene.context.closePath();
+    } else {
+        Scene.context.beginPath();
+        Scene.context.arc(c.x, c.y, Math.abs(r), angle(c,p1), angle(c,p2), false);
+        Scene.context.stroke();
+        Scene.context.closePath();
+    } 
 }
 
 window.addEventListener("resize", resizeCanvas, false);
