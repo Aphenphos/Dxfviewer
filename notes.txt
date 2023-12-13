@@ -1,0 +1,1 @@
+implement normalisation for all coordiantes and change zoom functions.

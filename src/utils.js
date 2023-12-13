@@ -48,4 +48,12 @@ class scene {
     }
 }
 
-export { renderer, camera, vec2d, vec3d, scene, clamp, degToRad, sleep }
+class mouseInput {
+    active; initialPosition;
+    constructor() {
+        this.active = false;
+        this.initialPosition = new vec2d();
+    }
+}
+
+export { renderer, camera, vec2d, vec3d, scene, mouseInput, clamp, degToRad, sleep }

@@ -1,5 +1,5 @@
 import { DxfParser } from 'dxf-parser';
-import { addEntityToScene, renderEntities, setCameraPos, wipeEntities } from "./render";
+import { addEntityToScene, moveCamera, setCameraPos, wipeEntities } from "./render";
 
 //prune the data "centering" it.
 //yes this is fairly slow but is only done one time on file load and
@@ -7,13 +7,13 @@ import { addEntityToScene, renderEntities, setCameraPos, wipeEntities } from "./
 //positioned their drawing is annoying.
 function handleDXF(fileString) { 
     const parser = new DxfParser();
-    let highestX = 0;
-    let highestY = 0;
+    let xTotal = 0;
+    let yTotal = 0;
+    let vertCount = 0;
     try {
         const dxf = parser.parseSync(fileString);
         const entities = dxf.entities;
         wipeEntities();
-        let vertCount = 0;
         let minX = 0;
         let minY = 0;
         //Find Lowest X and Y values;
@@ -22,7 +22,6 @@ function handleDXF(fileString) {
             switch (check.type) {
                 case ("LWPOLYLINE"): {
                     for (let vert = 0; vert < check.vertices.len; vert++) {
-                        vertCount++;
                         const v = check.vertices[vert];
                         if (v.x < minX) minX = v.x;
                         if (v.y < minY) minY = v.y;
@@ -30,7 +29,6 @@ function handleDXF(fileString) {
                     break;
                 }
                 case ("LINE"): {
-                    vertCount++;
                     for (const v of check.vertices) {
                         if (v.x < minX) minX = v.x;
                         if (v.y < minY) minY = v.y;                   
@@ -38,7 +36,6 @@ function handleDXF(fileString) {
                     break;
                 }
                 case ("ARC"): {
-                    vertCount++;
                     if (check.center.x < minX) minX = check.center.x;
                     if (check.center.y < minY) minY = check.center.y;
                 }
@@ -55,16 +52,18 @@ function handleDXF(fileString) {
                     for (const vert of check.vertices) {
                         vert.x += minX + 1;
                         vert.y += minY + 1;
-                        if (vert.x > highestX) highestX = vert.x;
-                        if (vert.y > highestY) highestY = vert.y;
+                        vertCount += 1;
+                        xTotal += vert.x;
+                        yTotal += vert.y;
                     }
                     break;
                 }
                 case ("ARC"):
                     check.center.x += minX + 1;
                     check.center.y += minY + 1;
-                    if (check.center.x > highestX) highestX = check.center.x;
-                    if (check.center.y > highestY) highestY = check.center.y;
+                    vertCount += 1;
+                    xTotal += check.center.x;
+                    yTotal += check.center.y;
             }
         }
         //LOOP AGAIN, SENDING TO RENDERER WITH THE CENTERED CAMERA POSITION
@@ -105,8 +104,7 @@ function handleDXF(fileString) {
     } catch(err) {
         return console.error(err.stack);
     }
-    setCameraPos(highestX * .5, highestY * .5, -1);
-    renderEntities();
+    setCameraPos(xTotal / vertCount, yTotal / vertCount, 2);
 }
 
 

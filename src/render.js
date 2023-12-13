@@ -3,15 +3,26 @@ import { camera, renderer, vec3d, scene, vec2d } from "./utils";
 const Scene = new scene();
 
 function initRenderer(fov, near, far, rotation) {
-    const cam = new camera(new vec3d(0,0,-5), rotation, fov, near, far);
+    const cam = new camera(new vec3d(0,0,-1), rotation, fov, near, far);
     return new renderer(cam);
 }
 
-function setCameraPos(x,y,z) {
-    console.log(x,y)
-    Scene.renderer.camera.x = x;
-    Scene.renderer.camera.y = y;
-    Scene.renderer.camera.z = z;
+function setCameraPos(x, y, z) {
+    Scene.renderer.camera.pos.x = x;
+    Scene.renderer.camera.pos.y = y;
+    Scene.renderer.camera.pos.z = z;
+    Scene.context.translate(x, y);
+    Scene.context.scale(z,z);
+    console.log(Scene.renderer.camera.pos);
+    updateCanvas();  
+}
+function getCameraPos() {
+    return Scene.renderer.camera.pos;
+}
+function moveCamera(deltaX = 0, deltaY = 0, deltaZ = 0) {
+    setCameraPos(Scene.renderer.camera.pos.x + deltaX,
+                 Scene.renderer.camera.pos.y + deltaY,
+                 Scene.renderer.camera.pos.z + deltaZ)
 }
 
 function initScene() {
@@ -31,9 +42,6 @@ function wipeEntities() {
     Scene.entities = [];
 }
 
-function centerScene() {
-
-}
 
 function drawPoint(point) {
     Scene.context.beginPath();
@@ -57,7 +65,7 @@ function drawArc(arc) {
     Scene.context.closePath();
 }
 
-function drawArcFromBulge(p1,p2) {
+function drawArcFromBulge(p1,p2, bulge) {
     function distance(p1, p2) {
         let dx = p2.x - p1.x;
         let dy = p2.y - p1.y;
@@ -72,12 +80,11 @@ function drawArcFromBulge(p1,p2) {
         return new vec2d(p.x + r * Math.cos(a), p.y + r * Math.sin(a));
     }
     
-    let a = 2 * Math.atan(p1.bulge);
+    let a = 2 * Math.atan(bulge);
     let r = distance(p1, p2) / (2 * Math.sin(a));
     let c = polar(p1, Math.PI / 2 - a + angle(p1, p2), r);
 
-    if (p1.bulge < 0) {
-        console.log(c.x, c.y, Math.abs(r), angle(c,p2), angle(c,p1))
+    if (bulge < 0) {
         Scene.context.beginPath();
         Scene.context.arc(c.x, c.y, Math.abs(r), angle(c,p2), angle(c,p1), false);
         Scene.context.stroke();
@@ -100,11 +107,11 @@ function renderEntities() {
                     if (k >= curEnt.vertices.length) {
                         k=0;
                     }
-                    drawPoint(curEnt.vertices[j]);
+                    drawPoint(projectPoint2D(curEnt.vertices[j]));
                     if (curEnt.vertices[j].bulge) {
-                        drawArcFromBulge(curEnt.vertices[j], curEnt.vertices[k]);
+                        drawArcFromBulge(projectPoint2D(curEnt.vertices[j]), projectPoint2D(curEnt.vertices[k]), curEnt.vertices[j].bulge);
                     } else {
-                        drawLine(curEnt.vertices[j], curEnt.vertices[k]);
+                        drawLine(projectPoint2D(curEnt.vertices[j]), projectPoint2D(curEnt.vertices[k]));
                     }
                 }
                 break;
@@ -130,10 +137,23 @@ function resizeCanvas() {
 }
 
 function updateCanvas() {
-    console.log(Scene);
+    Scene.canvas.width = Scene.canvas.width;
+    Scene.canvas.height = Scene.canvas.height;
     renderEntities();
 }
 
+function projectPoint2D(point) {
+    const dx = point.x - Scene.renderer.camera.pos.x;
+    const dy = point.y - Scene.renderer.camera.pos.y;
+    const dz = 1 - Scene.renderer.camera.pos.z;
 
+    const fovRadians = Scene.renderer.camera.fov * (Math.PI / 180);
+    const focalLength = 1 / Math.tan(fovRadians / 2);
 
-export { initScene, drawPoint, drawArc, drawArcFromBulge, drawLine, addEntityToScene, renderEntities, wipeEntities, setCameraPos }
+    const px = dx * (focalLength / dz);
+    const py = dy * (focalLength / dz);
+    
+    return new vec2d(px,py);
+}
+
+export { initScene, drawPoint, drawArc, drawArcFromBulge, drawLine, addEntityToScene, renderEntities, wipeEntities, setCameraPos, moveCamera, getCameraPos }
