@@ -9,6 +9,23 @@ function clamp(val, min, max) {
     return test > max ? max : test;
 }
 
+function projectToScreen(xy, width, height) {
+    return new vec2d(xy.x * width, xy.y * height);
+}
+
+function normalizeCoordinates2D(originalX, originalY, minX, maxX, minY, maxY) {
+    let normalizedX = (originalX - minX) / (maxX - minX);
+    let normalizedY = (originalY - minY) / (maxY - minY);
+    return new vec2d(normalizedX, normalizedY);
+}
+
+// Function to un-normalize 2D coordinates
+function unNormalizeCoordinates2D(normalizedX, normalizedY, minX, maxX, minY, maxY) {
+    let originalX = normalizedX * (maxX - minX) + minX;
+    let originalY = normalizedY * (maxY - minY) + minY;
+    return new vec2d(originalX, originalY);
+}
+
 function degToRad(deg) {
     return deg * Math.PI / 180;
 }
@@ -56,4 +73,4 @@ class mouseInput {
     }
 }
 
-export { renderer, camera, vec2d, vec3d, scene, mouseInput, clamp, degToRad, sleep }
+export { renderer, camera, vec2d, vec3d, scene, mouseInput, clamp, degToRad, sleep, normalizeCoordinates2D, unNormalizeCoordinates2D, projectToScreen }

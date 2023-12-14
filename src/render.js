@@ -1,4 +1,4 @@
-import { camera, renderer, vec3d, scene, vec2d } from "./utils";
+import { camera, renderer, vec3d, scene, vec2d, projectToScreen } from "./utils";
 
 const Scene = new scene();
 
@@ -100,6 +100,7 @@ function drawArcFromBulge(p1,p2, bulge) {
 function renderEntities() {
     for (let i = 0; i < Scene.entities.length; i++) {
         let curEnt = Scene.entities[i];
+        console.log(curEnt);
         switch (curEnt.type) {
             case("LWPOLYLINE"): {
                 for (let j = 0; j < curEnt.vertices.length; j++) {
