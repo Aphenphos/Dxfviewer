@@ -8,12 +8,10 @@ function initRenderer(fov, near, far, rotation) {
 }
 
 function setCameraPos(x, y, z) {
+    console.log(x,y,z);
     Scene.renderer.camera.pos.x = x;
     Scene.renderer.camera.pos.y = y;
     Scene.renderer.camera.pos.z = z;
-    Scene.context.translate(x, y);
-    Scene.context.scale(z,z);
-    console.log(Scene.renderer.camera.pos);
     updateCanvas();  
 }
 function getCameraPos() {
@@ -30,7 +28,7 @@ function initScene() {
     const ctx = drawingCanvas.getContext("2d");
     Scene.canvas = drawingCanvas;
     Scene.context = ctx;
-    Scene.renderer = initRenderer(90,0.1,1000,0);
+    Scene.renderer = initRenderer(90,0.1,1000,new vec3d(0,0,0));
     resizeCanvas();
 }
 
@@ -56,6 +54,10 @@ function drawLine(p1,p2) {
     Scene.context.lineTo(p2.x,p2.y);
     Scene.context.stroke();
     Scene.context.closePath();
+}
+
+function drawGrid() {
+
 }
 
 function drawArc(arc) {
@@ -98,9 +100,9 @@ function drawArcFromBulge(p1,p2, bulge) {
 }
 
 function renderEntities() {
+    //THIS FUNCTIONS NEEDS TO BE SHOT IN THE HEAD, REMAKE IT.
     for (let i = 0; i < Scene.entities.length; i++) {
         let curEnt = Scene.entities[i];
-        console.log(curEnt);
         switch (curEnt.type) {
             case("LWPOLYLINE"): {
                 for (let j = 0; j < curEnt.vertices.length; j++) {
@@ -108,21 +110,51 @@ function renderEntities() {
                     if (k >= curEnt.vertices.length) {
                         k=0;
                     }
-                    drawPoint(projectPoint2D(curEnt.vertices[j]));
+                    drawPoint(
+                        projectToScreen(curEnt.vertices[j], 
+                            Scene.renderer.camera, 
+                            Scene.canvas.width, 
+                            Scene.canvas.height));
                     if (curEnt.vertices[j].bulge) {
-                        drawArcFromBulge(projectPoint2D(curEnt.vertices[j]), projectPoint2D(curEnt.vertices[k]), curEnt.vertices[j].bulge);
+                        drawArcFromBulge(
+                            projectToScreen(curEnt.vertices[j], 
+                                Scene.renderer.camera, 
+                                Scene.canvas.width, 
+                                Scene.canvas.height), 
+                            projectToScreen(curEnt.vertices[k], 
+                                Scene.renderer.camera,
+                                Scene.canvas.width,
+                                Scene.canvas.height,), 
+                            curEnt.vertices[j].bulge);
                     } else {
-                        drawLine(projectPoint2D(curEnt.vertices[j]), projectPoint2D(curEnt.vertices[k]));
+                        drawLine(
+                            projectToScreen(curEnt.vertices[j], 
+                                Scene.renderer.camera, 
+                                Scene.canvas.width, 
+                                Scene.canvas.height), 
+                            projectToScreen(curEnt.vertices[k],
+                                Scene.renderer.camera, 
+                                Scene.canvas.width, 
+                                Scene.canvas.height));
                     }
                 }
                 break;
             }
             case("LINE"): {
-                drawLine(curEnt.vertices[0], curEnt.vertices[1]);
+                drawLine(projectToScreen(curEnt.vertices[0],
+                    Scene.renderer.camera, 
+                    Scene.canvas.width, 
+                    Scene.canvas.height), projectToScreen(curEnt.vertices[1],                                 
+                        Scene.renderer.camera, 
+                        Scene.canvas.width, 
+                        Scene.canvas.height));
                 break;
             }
             case("ARC"): {
-                drawArc(curEnt);
+                drawArc(projectToScreen(curEnt,                                
+                    Scene.renderer.camera, 
+                    Scene.canvas.width, 
+                    Scene.canvas.height));
             }
         }
     }
@@ -143,18 +175,5 @@ function updateCanvas() {
     renderEntities();
 }
 
-function projectPoint2D(point) {
-    const dx = point.x - Scene.renderer.camera.pos.x;
-    const dy = point.y - Scene.renderer.camera.pos.y;
-    const dz = 1 - Scene.renderer.camera.pos.z;
-
-    const fovRadians = Scene.renderer.camera.fov * (Math.PI / 180);
-    const focalLength = 1 / Math.tan(fovRadians / 2);
-
-    const px = dx * (focalLength / dz);
-    const py = dy * (focalLength / dz);
-    
-    return new vec2d(px,py);
-}
 
 export { initScene, drawPoint, drawArc, drawArcFromBulge, drawLine, addEntityToScene, renderEntities, wipeEntities, setCameraPos, moveCamera, getCameraPos }

@@ -11,13 +11,13 @@ document.addEventListener("mousedown", handleMouseDown);
 document.addEventListener("mouseup", handleMouseUp);
 document.addEventListener("mousemove", mouseActive);
 document.addEventListener("wheel", (e) => {
-    console.log("scroll");
     if (e.deltaY > 0) {
         handleScrollDown(e)
     } else {
         handleScrollUp(e)
     }
 });
+const gridToggle = document.getElementById("toggle-grid");
 
 function handleMouseDown(down) {
     MouseInputs.active = true;
@@ -26,20 +26,10 @@ function handleMouseDown(down) {
 }
 
 function handleScrollDown(e) {
-    const cam = getCameraPos();
-    const newZ = cam.z + e.deltaY * .001;
-    const mouseXWorld = (e.clientX - cam.x) / cam.z;
-    const mouseYWorld = (e.clientY - cam.y) / cam.z;
-
-    setCameraPos(cam.x - (mouseXWorld * newZ - mouseXWorld * cam.z), cam.y - (mouseYWorld * newZ - mouseYWorld * cam.z), newZ);
+    moveCamera(undefined, undefined, -.1);
 }
 function handleScrollUp(e) {
-    const cam = getCameraPos();
-    const newZ = cam.z + e.deltaY * .001;
-    const mouseXWorld = (e.clientX - cam.x) / cam.z;
-    const mouseYWorld = (e.clientY - cam.y) / cam.z;
-
-    setCameraPos(cam.x - (mouseXWorld * newZ - mouseXWorld * cam.z), cam.y - (mouseYWorld * newZ - mouseYWorld * cam.z), newZ);
+    moveCamera(undefined, undefined, .1);
 }
 
 function handleMouseUp(up) {
@@ -50,9 +40,9 @@ function handleMouseUp(up) {
 
 function mouseActive(event) {
     if (MouseInputs.active == true) {
-        const deltaX = (event.clientX - MouseInputs.initialPosition.x);
-        const deltaY = (event.clientY - MouseInputs.initialPosition.y );
-        moveCamera(deltaX * .7, deltaY * .7, 0);
+        const deltaX = (MouseInputs.initialPosition.x - event.clientX);
+        const deltaY = (MouseInputs.initialPosition.y - event.clientY);
+        moveCamera(deltaX * .005, deltaY * .005, 0);
         MouseInputs.initialPosition.x = event.clientX;
         MouseInputs.initialPosition.y = event.clientY;
         setTimeout(null, 17);
