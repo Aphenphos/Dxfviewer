@@ -1,14 +1,13 @@
-import { camera, renderer, vec3d, scene, vec2d, projectToScreen } from "./utils";
+import { camera, renderer, vec3d, scene, vec2d, projectToScreen, WorkSpaceSize, scaleFactor, normalizeCoordinates2D } from "./utils";
 
 const Scene = new scene();
 
 function initRenderer(fov, near, far, rotation) {
-    const cam = new camera(new vec3d(0,0,-1), rotation, fov, near, far);
+    const cam = new camera(new vec3d(0,0,0), rotation, fov, near, far);
     return new renderer(cam);
 }
 
 function setCameraPos(x, y, z) {
-    console.log(x,y,z);
     Scene.renderer.camera.pos.x = x;
     Scene.renderer.camera.pos.y = y;
     Scene.renderer.camera.pos.z = z;
@@ -28,11 +27,12 @@ function initScene() {
     const ctx = drawingCanvas.getContext("2d");
     Scene.canvas = drawingCanvas;
     Scene.context = ctx;
-    Scene.renderer = initRenderer(90,0.1,1000,new vec3d(0,0,0));
+    Scene.renderer = initRenderer(45,0.1,1000,new vec3d(0,0,0));
     resizeCanvas();
 }
 
 function addEntityToScene(ent) {
+    console.log(ent);
     Scene.entities.push(ent);
 }
 
@@ -57,12 +57,25 @@ function drawLine(p1,p2) {
 }
 
 function drawGrid() {
-
+    for (let i = -WorkSpaceSize; i < WorkSpaceSize; i += scaleFactor) {
+        //draw X
+        const x1 = normalizeCoordinates2D(i,-WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize);
+        const x2 = normalizeCoordinates2D(i,WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize);
+        drawLine(
+            projectToScreen(x1, 
+                Scene.renderer.camera, 
+                Scene.canvas.width, 
+                Scene.canvas.height), 
+            projectToScreen(x2,
+                Scene.renderer.camera, 
+                Scene.canvas.width, 
+                Scene.canvas.height));
+    }
 }
 
 function drawArc(arc) {
     Scene.context.beginPath();
-    Scene.context.arc(arc.center.x, arc.center.y, Math.abs(arc.radius), arc.startAngle, arc.endAngle, false);
+    Scene.context.arc(arc.cent.x, arc.cent.y, Math.abs(arc.radius), arc.startAngle, arc.endAngle, false);
     Scene.context.stroke();
     Scene.context.closePath();
 }
@@ -101,6 +114,7 @@ function drawArcFromBulge(p1,p2, bulge) {
 
 function renderEntities() {
     //THIS FUNCTIONS NEEDS TO BE SHOT IN THE HEAD, REMAKE IT.
+    drawGrid();
     for (let i = 0; i < Scene.entities.length; i++) {
         let curEnt = Scene.entities[i];
         switch (curEnt.type) {
@@ -151,10 +165,11 @@ function renderEntities() {
                 break;
             }
             case("ARC"): {
-                drawArc(projectToScreen(curEnt,                                
+                curEnt.cent = projectToScreen(curEnt.cent,                                
                     Scene.renderer.camera, 
                     Scene.canvas.width, 
-                    Scene.canvas.height));
+                    Scene.canvas.height)
+                drawArc(curEnt);
             }
         }
     }
@@ -176,4 +191,4 @@ function updateCanvas() {
 }
 
 
-export { initScene, drawPoint, drawArc, drawArcFromBulge, drawLine, addEntityToScene, renderEntities, wipeEntities, setCameraPos, moveCamera, getCameraPos }
+export { initScene, drawPoint, drawArc, drawArcFromBulge, drawLine, drawGrid, addEntityToScene, renderEntities, wipeEntities, setCameraPos, moveCamera, getCameraPos }

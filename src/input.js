@@ -19,6 +19,7 @@ document.addEventListener("wheel", (e) => {
 });
 const gridToggle = document.getElementById("toggle-grid");
 
+
 function handleMouseDown(down) {
     MouseInputs.active = true;
     MouseInputs.initialPosition.x = down.clientX;
@@ -40,9 +41,15 @@ function handleMouseUp(up) {
 
 function mouseActive(event) {
     if (MouseInputs.active == true) {
-        const deltaX = (MouseInputs.initialPosition.x - event.clientX);
-        const deltaY = (MouseInputs.initialPosition.y - event.clientY);
-        moveCamera(deltaX * .005, deltaY * .005, 0);
+        let deltaX = (MouseInputs.initialPosition.x - event.clientX);
+        let deltaY = (MouseInputs.initialPosition.y - event.clientY);
+        const camPos = getCameraPos();
+        if (camPos.z < 0) {
+            deltaX = -deltaX;
+            deltaY = -deltaY;
+        }
+        const scalar = (camPos.z + .01) / 1000
+        moveCamera(deltaX * scalar, deltaY * scalar, 0);
         MouseInputs.initialPosition.x = event.clientX;
         MouseInputs.initialPosition.y = event.clientY;
         setTimeout(null, 17);

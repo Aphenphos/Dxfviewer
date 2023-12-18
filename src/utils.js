@@ -2,6 +2,9 @@
 //classes purely for organizational purposes and ease of initializiation
 //no class methods because afaik it slows things down massively as your
 //object count increases
+const WorkSpaceSize = 1000;
+const scaleFactor = 10;
+
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function clamp(val, min, max) {
@@ -10,7 +13,6 @@ function clamp(val, min, max) {
 }
 
 function scaleVerts(verts) {
-    const scaleFactor = 100;
     let totalX = 0;
     let totalY = 0;
     const newVerts = [];
@@ -56,21 +58,21 @@ function projectToScreen(point, camera, screenW, screenH) {
         point.x - camera.pos.x,
         point.y - camera.pos.y,
         point.z - camera.pos.z
-        );
+    );
     const rotatedPoint = rotatePoint(translatedPoint, camera.rotation);
     const distanceRatio = 1 / Math.tan(camera.fov / 2);
+    const aspectRatio = screenW / screenH;
     const projecedPoint = new vec2d(
         rotatedPoint.x * distanceRatio / rotatedPoint.z,
-        rotatedPoint.y * distanceRatio / rotatedPoint.z
+        rotatedPoint.y * distanceRatio * aspectRatio / rotatedPoint.z
     );
+    
     const pointToScreen = new vec2d(
         (projecedPoint.x + 1) * .5 * screenW,
         (projecedPoint.y + 1) * .5 * screenH
     );
-    console.log(pointToScreen);
     return pointToScreen;
 }
-
 function rotatePoint(point, rotation) {
     let sinX = Math.sin(rotation.x);
     let cosX = Math.cos(rotation.x);
@@ -86,8 +88,8 @@ function rotatePoint(point, rotation) {
 }
 
 function normalizeCoordinates2D(originalX, originalY, minX, maxX, minY, maxY) {
-    let normalizedX = (originalX - minX) / (maxX - minX);
-    let normalizedY = (originalY - minY) / (maxY - minY);
+    let normalizedX = 2 * (originalX - minX) / (maxX - minX) - 1;
+    let normalizedY = 2 * (originalY - minY) / (maxY - minY) - 1;
     return new vec3d(normalizedX, normalizedY, 1);
 }
 
@@ -95,7 +97,7 @@ function normalizeCoordinates2D(originalX, originalY, minX, maxX, minY, maxY) {
 function unNormalizeCoordinates2D(normalizedX, normalizedY, minX, maxX, minY, maxY) {
     let originalX = normalizedX * (maxX - minX) + minX;
     let originalY = normalizedY * (maxY - minY) + minY;
-    return new vec3d(originalX, originalY, 1);
+    return new vec3d(originalX, originalY, 0);
 }
 
 function degToRad(deg) {
@@ -150,4 +152,4 @@ export { renderer, camera, vec2d,
         vec3d, scene, mouseInput, 
         clamp, degToRad, sleep, 
         normalizeCoordinates2D, unNormalizeCoordinates2D, 
-        projectToScreen, rotatePoint, scaleVerts }
+        projectToScreen, rotatePoint, scaleVerts, WorkSpaceSize, scaleFactor }

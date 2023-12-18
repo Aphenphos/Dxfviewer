@@ -1,11 +1,10 @@
 import { DxfParser } from 'dxf-parser';
-import { addEntityToScene, moveCamera, setCameraPos, wipeEntities } from "./render";
-import { normalizeCoordinates2D, scaleVerts } from './utils';
+import { addEntityToScene, drawGrid, moveCamera, setCameraPos, wipeEntities } from "./render";
+import { normalizeCoordinates2D, scaleVerts, WorkSpaceSize } from './utils';
 
 
 //Maximum coordinate for x and y so for 1000 inches we use 500 so minX = -500 and max is 500;
 
-const WorkSpaceSize = 100;
 //prune the data "centering" it.
 //yes this is fairly slow but is only done one time on file load and
 //is a big QOL change as scrolling around looking for where people
@@ -19,10 +18,9 @@ function handleDXF(fileString) {
         //IMPLEMENT HANDLING OF CIRCLES REWRITE THIS SHIT FUNCTION! AND THE SHIT RENDERIN FUNCTION
         for (let i=0; i < entities.length; i++) {
             let ent = entities[i];
-            console.log(ent);
-            ent.vertices = scaleVerts(ent.vertices);
             switch (ent.type) {
                 case ("LWPOLYLINE"): {
+                    ent.vertices = scaleVerts(ent.vertices);
                     const verts = []
                     for (let v of ent.vertices) {
                         const newV = normalizeCoordinates2D(v.x, v.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
@@ -36,13 +34,16 @@ function handleDXF(fileString) {
                     break;
                 }
                 case ("ARC"): {
-                    addEntityToScene({
-                        type: ent.type,
+                    //if name of center is the same as in renderer, it CHANGES THE X and Y??? FIX
+                    const normalCenter = normalizeCoordinates2D(ent.center.x, ent.center.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize)
+                    const entToScene = {
                         startAngle: ent.startAngle,
                         endAngle: ent.endAngle,
                         radius: ent.radius,
-                        center: normalizeCoordinates2D(ent.center)
-                    });
+                        type: ent.type,
+                        center: normalCenter
+                    }
+                    addEntityToScene(entToScene);
                     break;
                 }
                 case ("LINE"): {
@@ -57,6 +58,7 @@ function handleDXF(fileString) {
                     });
                     break;
                 }
+                default: break;
                 // case("CIRCLE"): {
                 //     addEntityToScene({
                 //         type: ent.type,
@@ -68,7 +70,7 @@ function handleDXF(fileString) {
     } catch(err) {
         return console.error(err.stack);
     }
-    setCameraPos(0,0,-1);
+    setCameraPos(0,0,0);
 }
 
 
