@@ -13,9 +13,16 @@ function clamp(val, min, max) {
 }
 
 function scaleVerts(verts) {
+
     let totalX = 0;
     let totalY = 0;
     const newVerts = [];
+    if (verts.length == 1) {
+        return {
+            center: verts[0].center,
+            radius: verts[0].radius * scaleFactor
+        }
+    }
     for (let i = 0; i < verts.length; i++) {
         const v = verts[i];
         if (verts.center) {

@@ -5,10 +5,7 @@ import { normalizeCoordinates2D, scaleVerts, WorkSpaceSize } from './utils';
 
 //Maximum coordinate for x and y so for 1000 inches we use 500 so minX = -500 and max is 500;
 
-//prune the data "centering" it.
 //yes this is fairly slow but is only done one time on file load and
-//is a big QOL change as scrolling around looking for where people
-//positioned their drawing is annoying.
 function handleDXF(fileString) { 
     const parser = new DxfParser();
     try {
@@ -34,12 +31,13 @@ function handleDXF(fileString) {
                     break;
                 }
                 case ("ARC"): {
-                    //if name of center is the same as in renderer, it CHANGES THE X and Y??? FIX
-                    const normalCenter = normalizeCoordinates2D(ent.center.x, ent.center.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize)
+                    const scaledCenter = scaleVerts([{ center:ent.center, radius: ent.radius }]);
+                    console.log("scaled",scaledCenter);
+                    const normalCenter = normalizeCoordinates2D(scaledCenter.center.x, scaledCenter.center.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize)
                     const entToScene = {
                         startAngle: ent.startAngle,
                         endAngle: ent.endAngle,
-                        radius: ent.radius,
+                        radius: scaledCenter.radius,
                         type: ent.type,
                         center: normalCenter
                     }

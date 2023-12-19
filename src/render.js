@@ -32,7 +32,6 @@ function initScene() {
 }
 
 function addEntityToScene(ent) {
-    console.log(ent);
     Scene.entities.push(ent);
 }
 
@@ -74,8 +73,20 @@ function drawGrid() {
 }
 
 function drawArc(arc) {
+    function projectRadiusToScreen(center, radius) {
+        // Create two points that are `radius` distance apart
+        let point1 = {x: center.x, y: center.y, z: 0};
+        let point2 = {x: center.x + radius, y: center.y, z: 0};
+        // Project the points to the screen
+                // Calculate the distance between the projected points
+        let dx = point2.x - point1.x;
+        let dy = point2.y - point1.y;
+        let projectedRadius = Math.sqrt(dx * dx + dy * dy);
+
+        return projectedRadius;
+    }
     Scene.context.beginPath();
-    Scene.context.arc(arc.cent.x, arc.cent.y, Math.abs(arc.radius), arc.startAngle, arc.endAngle, false);
+    Scene.context.arc(arc.center.x, arc.center.y, Math.abs(projectRadiusToScreen(arc.center, arc.radius)), arc.startAngle, arc.endAngle, false);
     Scene.context.stroke();
     Scene.context.closePath();
 }
@@ -98,7 +109,6 @@ function drawArcFromBulge(p1,p2, bulge) {
     let a = 2 * Math.atan(bulge);
     let r = distance(p1, p2) / (2 * Math.sin(a));
     let c = polar(p1, Math.PI / 2 - a + angle(p1, p2), r);
-
     if (bulge < 0) {
         Scene.context.beginPath();
         Scene.context.arc(c.x, c.y, Math.abs(r), angle(c,p2), angle(c,p1), false);
@@ -114,7 +124,7 @@ function drawArcFromBulge(p1,p2, bulge) {
 
 function renderEntities() {
     //THIS FUNCTIONS NEEDS TO BE SHOT IN THE HEAD, REMAKE IT.
-    drawGrid();
+    // drawGrid();
     for (let i = 0; i < Scene.entities.length; i++) {
         let curEnt = Scene.entities[i];
         switch (curEnt.type) {
@@ -165,11 +175,16 @@ function renderEntities() {
                 break;
             }
             case("ARC"): {
-                curEnt.cent = projectToScreen(curEnt.cent,                                
+                const newCenter = projectToScreen(curEnt.center,                                
                     Scene.renderer.camera, 
                     Scene.canvas.width, 
                     Scene.canvas.height)
-                drawArc(curEnt);
+                drawArc({
+                    center: newCenter,
+                    radius: curEnt.radius,
+                    startAngle: curEnt.startAngle,
+                    endAngle: curEnt.endAngle,
+                });
             }
         }
     }
