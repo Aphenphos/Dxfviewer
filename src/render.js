@@ -123,7 +123,6 @@ function drawArcFromBulge(p1,p2, bulge) {
 }
 
 function renderEntities() {
-    //THIS FUNCTIONS NEEDS TO BE SHOT IN THE HEAD, REMAKE IT.
     // drawGrid();
     for (let i = 0; i < Scene.entities.length; i++) {
         let curEnt = Scene.entities[i];
@@ -134,21 +133,16 @@ function renderEntities() {
                     if (k >= curEnt.vertices.length) {
                         k=0;
                     }
-                    drawPoint(
-                        projectToScreen(curEnt.vertices[j], 
-                            Scene.renderer.camera, 
-                            Scene.canvas.width, 
-                            Scene.canvas.height));
                     if (curEnt.vertices[j].bulge) {
                         drawArcFromBulge(
                             projectToScreen(curEnt.vertices[j], 
                                 Scene.renderer.camera, 
                                 Scene.canvas.width, 
                                 Scene.canvas.height), 
-                            projectToScreen(curEnt.vertices[k], 
-                                Scene.renderer.camera,
-                                Scene.canvas.width,
-                                Scene.canvas.height,), 
+                                projectToScreen(curEnt.vertices[k], 
+                                    Scene.renderer.camera,
+                                    Scene.canvas.width,
+                                    Scene.canvas.height,), 
                             curEnt.vertices[j].bulge);
                     } else {
                         drawLine(
@@ -156,35 +150,36 @@ function renderEntities() {
                                 Scene.renderer.camera, 
                                 Scene.canvas.width, 
                                 Scene.canvas.height), 
-                            projectToScreen(curEnt.vertices[k],
+                                projectToScreen(curEnt.vertices[k],
                                 Scene.renderer.camera, 
                                 Scene.canvas.width, 
                                 Scene.canvas.height));
+                            }
+                        }
+                        break;
                     }
-                }
-                break;
-            }
-            case("LINE"): {
-                drawLine(projectToScreen(curEnt.vertices[0],
-                    Scene.renderer.camera, 
-                    Scene.canvas.width, 
-                    Scene.canvas.height), projectToScreen(curEnt.vertices[1],                                 
-                        Scene.renderer.camera, 
+                    case("LINE"): {
+                        drawLine(projectToScreen(curEnt.vertices[0],
+                            Scene.renderer.camera, 
+                            Scene.canvas.width, 
+                            Scene.canvas.height), projectToScreen(curEnt.vertices[1],                                 
+                                Scene.renderer.camera, 
+                                Scene.canvas.width, 
+                                Scene.canvas.height));
+                                break;
+                            }
+                            case("ARC"): {
+                                console.log(curEnt)
+                                drawArcFromBulge(
+                                    projectToScreen(curEnt.vertices[0], 
+                                        Scene.renderer.camera, 
                         Scene.canvas.width, 
-                        Scene.canvas.height));
-                break;
-            }
-            case("ARC"): {
-                const newCenter = projectToScreen(curEnt.center,                                
-                    Scene.renderer.camera, 
-                    Scene.canvas.width, 
-                    Scene.canvas.height)
-                drawArc({
-                    center: newCenter,
-                    radius: curEnt.radius,
-                    startAngle: curEnt.startAngle,
-                    endAngle: curEnt.endAngle,
-                });
+                        Scene.canvas.height), 
+                    projectToScreen(curEnt.vertices[1], 
+                        Scene.renderer.camera,
+                        Scene.canvas.width,
+                        Scene.canvas.height,), 
+                    curEnt.vertices[0].bulge);
             }
         }
     }

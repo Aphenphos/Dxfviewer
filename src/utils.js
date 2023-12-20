@@ -12,17 +12,35 @@ function clamp(val, min, max) {
     return test > max ? max : test;
 }
 
+function arcToArcWithBulge(arc) {
+    console.log(arc);
+    const startAngle = arc.startAngle   
+    const endAngle = arc.endAngle
+    const startX = arc.center.x + Math.abs(arc.radius) * Math.cos(startAngle);
+    const startY = arc.center.y + Math.abs(arc.radius) * Math.sin(startAngle);
+    const endX = arc.center.x + Math.abs(arc.radius) * Math.cos(endAngle);
+    const endY = arc.center.y + Math.abs(arc.radius) * Math.sin(endAngle);
+    const bulge = Math.tan((endAngle - startAngle) * .25);
+    if (startAngle < endAngle) {
+        
+    }
+// parser deals with bulge arcs by using sequential vertices
+// this uses the first vertice bulge, therefore I only store it once.
+    return [{
+        x: startX,
+        y: startY,
+        bulge: bulge
+    }, {
+       x: endX,
+       y: endY 
+    }]
+}
+//create a function which scales to something universal?
 function scaleVerts(verts) {
 
     let totalX = 0;
     let totalY = 0;
     const newVerts = [];
-    if (verts.length == 1) {
-        return {
-            center: verts[0].center,
-            radius: verts[0].radius * scaleFactor
-        }
-    }
     for (let i = 0; i < verts.length; i++) {
         const v = verts[i];
         if (verts.center) {
@@ -100,6 +118,12 @@ function normalizeCoordinates2D(originalX, originalY, minX, maxX, minY, maxY) {
     return new vec3d(normalizedX, normalizedY, 1);
 }
 
+function normalize2DCoordinatesToScreen(point) {
+    let normalizedX = 2 * (point.x - (-WorkSpaceSize)) / (WorkSpaceSize - (-WorkSpaceSize)) - 1;
+    let normalizedY = 2 * (point.y - (-WorkSpaceSize)) / (WorkSpaceSize - (-WorkSpaceSize)) - 1 ;
+    return new vec3d(normalizedX, normalizedY,1);
+}
+
 // Function to un-normalize 2D coordinates
 function unNormalizeCoordinates2D(normalizedX, normalizedY, minX, maxX, minY, maxY) {
     let originalX = normalizedX * (maxX - minX) + minX;
@@ -158,5 +182,5 @@ class mouseInput {
 export { renderer, camera, vec2d, 
         vec3d, scene, mouseInput, 
         clamp, degToRad, sleep, 
-        normalizeCoordinates2D, unNormalizeCoordinates2D, 
-        projectToScreen, rotatePoint, scaleVerts, WorkSpaceSize, scaleFactor }
+        normalizeCoordinates2D, normalize2DCoordinatesToScreen,  unNormalizeCoordinates2D, 
+        projectToScreen, rotatePoint, arcToArcWithBulge, scaleVerts, WorkSpaceSize, scaleFactor }

@@ -1,6 +1,6 @@
 import { DxfParser } from 'dxf-parser';
 import { addEntityToScene, drawGrid, moveCamera, setCameraPos, wipeEntities } from "./render";
-import { normalizeCoordinates2D, scaleVerts, WorkSpaceSize } from './utils';
+import { arcToArcWithBulge, normalize2DCoordinatesToScreen, normalizeCoordinates2D, scaleVerts, WorkSpaceSize } from './utils';
 
 
 //Maximum coordinate for x and y so for 1000 inches we use 500 so minX = -500 and max is 500;
@@ -17,11 +17,13 @@ function handleDXF(fileString) {
             let ent = entities[i];
             switch (ent.type) {
                 case ("LWPOLYLINE"): {
-                    ent.vertices = scaleVerts(ent.vertices);
+                    console.log(ent);
                     const verts = []
                     for (let v of ent.vertices) {
-                        const newV = normalizeCoordinates2D(v.x, v.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
-                        newV.bulge = v.bulge;
+                        const newV = normalize2DCoordinatesToScreen(v);
+                        if (v.bulge) {
+                            newV.bulge = v.bulge;
+                        }
                         verts.push(newV);
                     }
                     addEntityToScene({
@@ -31,23 +33,26 @@ function handleDXF(fileString) {
                     break;
                 }
                 case ("ARC"): {
-                    const scaledCenter = scaleVerts([{ center:ent.center, radius: ent.radius }]);
-                    console.log("scaled",scaledCenter);
-                    const normalCenter = normalizeCoordinates2D(scaledCenter.center.x, scaledCenter.center.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize)
-                    const entToScene = {
-                        startAngle: ent.startAngle,
-                        endAngle: ent.endAngle,
-                        radius: scaledCenter.radius,
-                        type: ent.type,
-                        center: normalCenter
+                    //converted from {rad, startAngle, endAngle, centerPoint} -> [{x,y,bulge}, {x,y}];
+                    //this mimics the shape of the polyline bulge and is easier to work with later on.
+                    const arcConverted = arcToArcWithBulge(ent);
+                    console.log(arcConverted)
+                    const verts = [];
+                    for (let v of arcConverted) {
+                        const newV = normalize2DCoordinatesToScreen(v);
+                        newV.bulge = v.bulge;
+                        verts.push(newV);
                     }
-                    addEntityToScene(entToScene);
+                    addEntityToScene({
+                        type: ent.type,
+                        vertices: verts
+                    });
                     break;
                 }
                 case ("LINE"): {
                     const verts = [];
                     for (let v of ent.vertices) {
-                        const newV = normalizeCoordinates2D(v.x, v.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
+                        const newV = normalize2DCoordinatesToScreen(v);
                         verts.push(newV);
                     }
                     addEntityToScene({

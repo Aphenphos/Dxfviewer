@@ -27,10 +27,10 @@ function handleMouseDown(down) {
 }
 
 function handleScrollDown(e) {
-    moveCamera(undefined, undefined, -.1);
+    moveCamera(undefined, undefined, -.001);
 }
 function handleScrollUp(e) {
-    moveCamera(undefined, undefined, .1);
+    moveCamera(undefined, undefined, .01);
 }
 
 function handleMouseUp(up) {
