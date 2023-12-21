@@ -1,6 +1,6 @@
 import { DxfParser } from 'dxf-parser';
-import { addEntityToScene, drawGrid, moveCamera, setCameraPos, wipeEntities } from "./render";
-import { arcToArcWithBulge, normalize2DCoordinatesToScreen, normalizeCoordinates2D, scaleVerts, WorkSpaceSize } from './utils';
+import { addEntityToScene, moveCamera, setCameraPos, wipeEntities } from "./render";
+import { arcToArcWithBulge, normalize2DCoordinatesToScreen, normalizeCoordinates2D, scaleVert, scaleVerts, WorkSpaceSize } from './utils';
 
 
 //Maximum coordinate for x and y so for 1000 inches we use 500 so minX = -500 and max is 500;
@@ -17,10 +17,10 @@ function handleDXF(fileString) {
             let ent = entities[i];
             switch (ent.type) {
                 case ("LWPOLYLINE"): {
-                    console.log(ent);
                     const verts = []
                     for (let v of ent.vertices) {
-                        const newV = normalize2DCoordinatesToScreen(v);
+                        let newV = normalize2DCoordinatesToScreen(v);
+                        newV = scaleVert(newV);
                         if (v.bulge) {
                             newV.bulge = v.bulge;
                         }
@@ -36,10 +36,10 @@ function handleDXF(fileString) {
                     //converted from {rad, startAngle, endAngle, centerPoint} -> [{x,y,bulge}, {x,y}];
                     //this mimics the shape of the polyline bulge and is easier to work with later on.
                     const arcConverted = arcToArcWithBulge(ent);
-                    console.log(arcConverted)
                     const verts = [];
                     for (let v of arcConverted) {
-                        const newV = normalize2DCoordinatesToScreen(v);
+                        let newV = normalize2DCoordinatesToScreen(v);
+                        newV = scaleVert(newV);
                         newV.bulge = v.bulge;
                         verts.push(newV);
                     }
@@ -52,7 +52,8 @@ function handleDXF(fileString) {
                 case ("LINE"): {
                     const verts = [];
                     for (let v of ent.vertices) {
-                        const newV = normalize2DCoordinatesToScreen(v);
+                        let newV = normalize2DCoordinatesToScreen(v);
+                        newV = scaleVert(newV);
                         verts.push(newV);
                     }
                     addEntityToScene({
@@ -74,6 +75,7 @@ function handleDXF(fileString) {
         return console.error(err.stack);
     }
     setCameraPos(0,0,0);
+    moveCamera(undefined,undefined,undefined);
 }
 
 

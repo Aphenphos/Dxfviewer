@@ -3,27 +3,28 @@
 //no class methods because afaik it slows things down massively as your
 //object count increases
 const WorkSpaceSize = 1000;
-const scaleFactor = 10;
+const scaleFactor = 10.0;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function clamp(val, min, max) {
-    test = val < min ? min : val;
+    const test = val < min ? min : val;
     return test > max ? max : test;
 }
 
 function arcToArcWithBulge(arc) {
-    console.log(arc);
     const startAngle = arc.startAngle   
-    const endAngle = arc.endAngle
+    let endAngle = arc.endAngle
+    if (startAngle > endAngle) {
+        //if start angle is greater than end this will draw the arc
+        //everywhere except where we want it
+        endAngle += 2 * Math.PI;
+    }
     const startX = arc.center.x + Math.abs(arc.radius) * Math.cos(startAngle);
     const startY = arc.center.y + Math.abs(arc.radius) * Math.sin(startAngle);
     const endX = arc.center.x + Math.abs(arc.radius) * Math.cos(endAngle);
     const endY = arc.center.y + Math.abs(arc.radius) * Math.sin(endAngle);
     const bulge = Math.tan((endAngle - startAngle) * .25);
-    if (startAngle < endAngle) {
-        
-    }
 // parser deals with bulge arcs by using sequential vertices
 // this uses the first vertice bulge, therefore I only store it once.
     return [{
@@ -36,6 +37,13 @@ function arcToArcWithBulge(arc) {
     }]
 }
 //create a function which scales to something universal?
+function scaleVert(vert) {
+    return {
+        x: vert.x * scaleFactor,
+        y: vert.y * scaleFactor,
+        z: 1
+    };
+}
 function scaleVerts(verts) {
 
     let totalX = 0;
@@ -78,26 +86,6 @@ function scaleVerts(verts) {
     return newVerts;    
 }
 
-function projectToScreen(point, camera, screenW, screenH) {
-    const translatedPoint = new vec3d(
-        point.x - camera.pos.x,
-        point.y - camera.pos.y,
-        point.z - camera.pos.z
-    );
-    const rotatedPoint = rotatePoint(translatedPoint, camera.rotation);
-    const distanceRatio = 1 / Math.tan(camera.fov / 2);
-    const aspectRatio = screenW / screenH;
-    const projecedPoint = new vec2d(
-        rotatedPoint.x * distanceRatio / rotatedPoint.z,
-        rotatedPoint.y * distanceRatio * aspectRatio / rotatedPoint.z
-    );
-    
-    const pointToScreen = new vec2d(
-        (projecedPoint.x + 1) * .5 * screenW,
-        (projecedPoint.y + 1) * .5 * screenH
-    );
-    return pointToScreen;
-}
 function rotatePoint(point, rotation) {
     let sinX = Math.sin(rotation.x);
     let cosX = Math.cos(rotation.x);
@@ -183,4 +171,4 @@ export { renderer, camera, vec2d,
         vec3d, scene, mouseInput, 
         clamp, degToRad, sleep, 
         normalizeCoordinates2D, normalize2DCoordinatesToScreen,  unNormalizeCoordinates2D, 
-        projectToScreen, rotatePoint, arcToArcWithBulge, scaleVerts, WorkSpaceSize, scaleFactor }
+         rotatePoint, arcToArcWithBulge, scaleVerts, scaleVert, WorkSpaceSize, scaleFactor }

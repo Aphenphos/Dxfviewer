@@ -1,4 +1,5 @@
-import { camera, renderer, vec3d, scene, vec2d, projectToScreen, WorkSpaceSize, scaleFactor, normalizeCoordinates2D } from "./utils";
+import { gridEnabled } from "./input";
+import { camera, renderer, vec3d, scene, vec2d, WorkSpaceSize, scaleFactor, normalizeCoordinates2D, scaleVert, rotatePoint, sleep } from "./utils";
 
 const Scene = new scene();
 
@@ -58,18 +59,17 @@ function drawLine(p1,p2) {
 function drawGrid() {
     for (let i = -WorkSpaceSize; i < WorkSpaceSize; i += scaleFactor) {
         //draw X
-        const x1 = normalizeCoordinates2D(i,-WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize);
-        const x2 = normalizeCoordinates2D(i,WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize);
+        let x1 = normalizeCoordinates2D(i - .5,-WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize);
+        let x2 = normalizeCoordinates2D(i,WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize);
+        let y1 = normalizeCoordinates2D(-WorkSpaceSize, i - .5, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
+        let y2 = normalizeCoordinates2D(WorkSpaceSize, i, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
         drawLine(
-            projectToScreen(x1, 
-                Scene.renderer.camera, 
-                Scene.canvas.width, 
-                Scene.canvas.height), 
-            projectToScreen(x2,
-                Scene.renderer.camera, 
-                Scene.canvas.width, 
-                Scene.canvas.height));
-    }
+            projectToScreen(x1), 
+            projectToScreen(x2));
+        drawLine(
+            projectToScreen(y1), 
+            projectToScreen(y2));
+        }
 }
 
 function drawArc(arc) {
@@ -123,63 +123,47 @@ function drawArcFromBulge(p1,p2, bulge) {
 }
 
 function renderEntities() {
-    // drawGrid();
+    if (gridEnabled) {
+        drawGrid();
+    }
     for (let i = 0; i < Scene.entities.length; i++) {
         let curEnt = Scene.entities[i];
+        console.log(curEnt);
         switch (curEnt.type) {
             case("LWPOLYLINE"): {
                 for (let j = 0; j < curEnt.vertices.length; j++) {
                     let k = j+1
-                    if (k >= curEnt.vertices.length) {
-                        k=0;
-                    }
+                    //ugly but works for now
                     if (curEnt.vertices[j].bulge) {
-                        drawArcFromBulge(
-                            projectToScreen(curEnt.vertices[j], 
-                                Scene.renderer.camera, 
-                                Scene.canvas.width, 
-                                Scene.canvas.height), 
-                                projectToScreen(curEnt.vertices[k], 
-                                    Scene.renderer.camera,
-                                    Scene.canvas.width,
-                                    Scene.canvas.height,), 
-                            curEnt.vertices[j].bulge);
-                    } else {
-                        drawLine(
-                            projectToScreen(curEnt.vertices[j], 
-                                Scene.renderer.camera, 
-                                Scene.canvas.width, 
-                                Scene.canvas.height), 
-                                projectToScreen(curEnt.vertices[k],
-                                Scene.renderer.camera, 
-                                Scene.canvas.width, 
-                                Scene.canvas.height));
-                            }
+                        if (k >= curEnt.vertices.length) {
+                            k=0
                         }
-                        break;
-                    }
-                    case("LINE"): {
-                        drawLine(projectToScreen(curEnt.vertices[0],
-                            Scene.renderer.camera, 
-                            Scene.canvas.width, 
-                            Scene.canvas.height), projectToScreen(curEnt.vertices[1],                                 
-                                Scene.renderer.camera, 
-                                Scene.canvas.width, 
-                                Scene.canvas.height));
+                        drawArcFromBulge(
+                            projectToScreen(curEnt.vertices[j]), 
+                            projectToScreen(curEnt.vertices[k]), 
+                            curEnt.vertices[j].bulge);
+                        } else {
+                            if (k >= curEnt.vertices.length) {
                                 break;
                             }
-                            case("ARC"): {
-                                console.log(curEnt)
-                                drawArcFromBulge(
-                                    projectToScreen(curEnt.vertices[0], 
-                                        Scene.renderer.camera, 
-                        Scene.canvas.width, 
-                        Scene.canvas.height), 
-                    projectToScreen(curEnt.vertices[1], 
-                        Scene.renderer.camera,
-                        Scene.canvas.width,
-                        Scene.canvas.height,), 
+                            drawLine(
+                            projectToScreen(curEnt.vertices[j]), 
+                            projectToScreen(curEnt.vertices[k]));
+                        }
+                    }
+                break;
+            }
+            case("LINE"): {
+                drawLine(projectToScreen(curEnt.vertices[0]), 
+                            projectToScreen(curEnt.vertices[1]));
+                break;
+            }
+            case("ARC"): {
+                drawArcFromBulge(
+                    projectToScreen(curEnt.vertices[0]), 
+                    projectToScreen(curEnt.vertices[1]), 
                     curEnt.vertices[0].bulge);
+                break;
             }
         }
     }
@@ -200,5 +184,83 @@ function updateCanvas() {
     renderEntities();
 }
 
+function projectToScreen(point) {
+    const camera = Scene.renderer.camera
+    const screenW = Scene.canvas.width;
+    const screenH = Scene.canvas.height;
+    const translatedPoint = new vec3d(
+        point.x - camera.pos.x,
+        point.y - camera.pos.y,
+        point.z - camera.pos.z
+    );
+    const rotatedPoint = rotatePoint(translatedPoint, camera.rotation);
+    const distanceRatio = 1 / Math.tan(camera.fov / 2);
+    const aspectRatio = screenW / screenH;
+    const projecedPoint = new vec2d(
+        rotatedPoint.x * distanceRatio / rotatedPoint.z,
+        rotatedPoint.y * distanceRatio * aspectRatio / rotatedPoint.z
+    );
+    
+    const pointToScreen = new vec2d(
+        (projecedPoint.x + 1) * .5 * screenW,
+        (projecedPoint.y + 1) * .5 * screenH
+    );
+    return pointToScreen;
+}
 
+// Potential parsing function i translated from my python parser;
+// let coords; // assuming coords is globally defined
+// let toShapes = [];
+// let used = new Set();
+// let shape = [null];
+// let i = 0;
+// let length = coords.length;
+
+// function isClose(p1, p2) {
+//     return Math.abs(p1.x - p2.x) < Number.EPSILON && Math.abs(p1.y - p2.y) < Number.EPSILON;
+// }
+
+// function findNextEnt() {
+//     for (let j = 0; j < length; j++) {
+//         if (used.has(j) || coords[j].start().type === 'CIRCLE') {
+//             continue;
+//         }
+//         if (isClose(coords[j].start(), shape[shape.length - 1].end()) || isClose(coords[j].end(), shape[shape.length - 1].end()) ||
+//             isClose(coords[j].start(), shape[shape.length - 1].start()) || isClose(coords[j].end(), shape[shape.length - 1].start())) {
+//             used.add(j);
+//             shape.push(coords[j]);
+//             return true;
+//         }
+//     }
+//     console.log("Could not find next Entity.");
+//     process.exit(1);
+// }
+
+// while (i < length) {
+//     if (coords[i].start().type === 'CIRCLE') {
+//         toShapes.push(new Shape([coords[i]])); // assuming Shape is a defined class
+//         used.add(i);
+//         i++;
+//         continue;
+//     }
+//     if (shape[0] === null) {
+//         shape[0] = coords[i];
+//         used.add(i);
+//         i++;
+//     }
+//     findNextEnt();
+//     i++;
+//     if (shape.length > 2) {
+//         if (isClose(shape[0].start(), shape[shape.length - 1].end()) || isClose(shape[0].end(), shape[shape.length - 1].end()) ||
+//             isClose(shape[0].start(), shape[shape.length - 1].start()) || isClose(shape[0].end(), shape[shape.length - 1].start())) {
+//             console.log("shape completed");
+//             toShapes.push(new Shape(shape)); // assuming Shape is a defined class
+//             shape = [null];
+//             continue;
+//         }
+//     }
+//     if (used.size === length) {
+//         break;
+//     }
+// }
 export { initScene, drawPoint, drawArc, drawArcFromBulge, drawLine, drawGrid, addEntityToScene, renderEntities, wipeEntities, setCameraPos, moveCamera, getCameraPos }

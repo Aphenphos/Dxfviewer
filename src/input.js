@@ -1,7 +1,8 @@
 import { getCameraPos, moveCamera, setCameraPos } from "./render";
-import { mouseInput } from "./utils";
+import { mouseInput, clamp } from "./utils";
 
 let MouseInputs;
+let gridEnabled = false;
 //this works but need to implement actual renderer;
 function initInputs() {
     MouseInputs = new mouseInput();
@@ -18,7 +19,10 @@ document.addEventListener("wheel", (e) => {
     }
 });
 const gridToggle = document.getElementById("toggle-grid");
-
+gridToggle.addEventListener("change",() => {
+    gridEnabled = !gridEnabled;
+    moveCamera(undefined,undefined,undefined);
+})
 
 function handleMouseDown(down) {
     MouseInputs.active = true;
@@ -27,7 +31,7 @@ function handleMouseDown(down) {
 }
 
 function handleScrollDown(e) {
-    moveCamera(undefined, undefined, -.001);
+    moveCamera(undefined, undefined, -.01);
 }
 function handleScrollUp(e) {
     moveCamera(undefined, undefined, .01);
@@ -44,11 +48,7 @@ function mouseActive(event) {
         let deltaX = (MouseInputs.initialPosition.x - event.clientX);
         let deltaY = (MouseInputs.initialPosition.y - event.clientY);
         const camPos = getCameraPos();
-        if (camPos.z < 0) {
-            deltaX = -deltaX;
-            deltaY = -deltaY;
-        }
-        const scalar = (camPos.z + .01) / 1000
+        const scalar = clamp(.0001 / (camPos.z), .00001, .005)
         moveCamera(deltaX * scalar, deltaY * scalar, 0);
         MouseInputs.initialPosition.x = event.clientX;
         MouseInputs.initialPosition.y = event.clientY;
@@ -56,4 +56,4 @@ function mouseActive(event) {
     }
 }
 
-export { initInputs }
+export { initInputs, gridEnabled }
