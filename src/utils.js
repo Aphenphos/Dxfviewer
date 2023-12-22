@@ -17,7 +17,7 @@ function arcToArcWithBulge(arc) {
     let endAngle = arc.endAngle
     if (startAngle > endAngle) {
         //if start angle is greater than end this will draw the arc
-        //everywhere except where we want it
+        //everywhere except where we want it | Add full circle of radians to correct it
         endAngle += 2 * Math.PI;
     }
     const startX = arc.center.x + Math.abs(arc.radius) * Math.cos(startAngle);
@@ -123,7 +123,9 @@ function degToRad(deg) {
     return deg * Math.PI / 180;
 }
 
-
+function last(array) {
+    return array[array.length - 1];
+}
 class vec2d {
     x; y;
     constructor(x=0,y=0) {
@@ -135,6 +137,18 @@ class vec3d {
     x; y; z;
     constructor(x=0,y=0,z=0) {
         this.x = x; this.y = y; this.z = z;
+    }
+}
+
+class shape {
+    entities; vertCnt; minX; maxX; minY; maxY;
+    constructor(entities = []) {
+        this.entities = entities;
+        this.vertCnt = 0;
+        this.minX = 0;
+        this.maxX = 0;
+        this.minY = 0;
+        this.maxY = 0;
     }
 }
 
@@ -167,8 +181,8 @@ class mouseInput {
     }
 }
 
-export { renderer, camera, vec2d, 
-        vec3d, scene, mouseInput, 
-        clamp, degToRad, sleep, 
-        normalizeCoordinates2D, normalize2DCoordinatesToScreen,  unNormalizeCoordinates2D, 
+export { renderer, camera, vec2d, shape,
+         vec3d, scene, mouseInput, 
+         clamp, degToRad, sleep, last,
+         normalizeCoordinates2D, normalize2DCoordinatesToScreen,  unNormalizeCoordinates2D, 
          rotatePoint, arcToArcWithBulge, scaleVerts, scaleVert, WorkSpaceSize, scaleFactor }

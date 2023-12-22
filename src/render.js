@@ -128,7 +128,6 @@ function renderEntities() {
     }
     for (let i = 0; i < Scene.entities.length; i++) {
         let curEnt = Scene.entities[i];
-        console.log(curEnt);
         switch (curEnt.type) {
             case("LWPOLYLINE"): {
                 for (let j = 0; j < curEnt.vertices.length; j++) {
@@ -164,6 +163,14 @@ function renderEntities() {
                     projectToScreen(curEnt.vertices[1]), 
                     curEnt.vertices[0].bulge);
                 break;
+            }
+            case("CIRCLE"): {
+                console.log(curEnt);
+                drawArcFromBulge(
+                    projectToScreen(curEnt.vertices[0]), 
+                    projectToScreen(curEnt.vertices[1]), 
+                    curEnt.vertices[0].bulge);
+                break;    
             }
         }
     }
@@ -208,59 +215,5 @@ function projectToScreen(point) {
     return pointToScreen;
 }
 
-// Potential parsing function i translated from my python parser;
-// let coords; // assuming coords is globally defined
-// let toShapes = [];
-// let used = new Set();
-// let shape = [null];
-// let i = 0;
-// let length = coords.length;
 
-// function isClose(p1, p2) {
-//     return Math.abs(p1.x - p2.x) < Number.EPSILON && Math.abs(p1.y - p2.y) < Number.EPSILON;
-// }
-
-// function findNextEnt() {
-//     for (let j = 0; j < length; j++) {
-//         if (used.has(j) || coords[j].start().type === 'CIRCLE') {
-//             continue;
-//         }
-//         if (isClose(coords[j].start(), shape[shape.length - 1].end()) || isClose(coords[j].end(), shape[shape.length - 1].end()) ||
-//             isClose(coords[j].start(), shape[shape.length - 1].start()) || isClose(coords[j].end(), shape[shape.length - 1].start())) {
-//             used.add(j);
-//             shape.push(coords[j]);
-//             return true;
-//         }
-//     }
-//     console.log("Could not find next Entity.");
-//     process.exit(1);
-// }
-
-// while (i < length) {
-//     if (coords[i].start().type === 'CIRCLE') {
-//         toShapes.push(new Shape([coords[i]])); // assuming Shape is a defined class
-//         used.add(i);
-//         i++;
-//         continue;
-//     }
-//     if (shape[0] === null) {
-//         shape[0] = coords[i];
-//         used.add(i);
-//         i++;
-//     }
-//     findNextEnt();
-//     i++;
-//     if (shape.length > 2) {
-//         if (isClose(shape[0].start(), shape[shape.length - 1].end()) || isClose(shape[0].end(), shape[shape.length - 1].end()) ||
-//             isClose(shape[0].start(), shape[shape.length - 1].start()) || isClose(shape[0].end(), shape[shape.length - 1].start())) {
-//             console.log("shape completed");
-//             toShapes.push(new Shape(shape)); // assuming Shape is a defined class
-//             shape = [null];
-//             continue;
-//         }
-//     }
-//     if (used.size === length) {
-//         break;
-//     }
-// }
 export { initScene, drawPoint, drawArc, drawArcFromBulge, drawLine, drawGrid, addEntityToScene, renderEntities, wipeEntities, setCameraPos, moveCamera, getCameraPos }
