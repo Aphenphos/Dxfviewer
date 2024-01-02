@@ -1,5 +1,12 @@
-DO A PASSTHROUGH AND OPTOMIZE APP 
-- PARSER 
-    - REWRITE ARC PARSING TO GET START / END POINT AND BULGE, THIS IS OPTIMAL FOR PROJECTION
--RENDERER
-    - THE WAY IT IS WRITTEN NEEDS TO BE LESS GARBAGE
+Need a little reorganization.
+Needs optomization and some structural changes. 
+Currently a bit messy.
+
+
+TO ADD - 
+    - Add a way to render numbers and letters.
+    - Basic Shape dimensions
+    - Shape nester
+    - 3D support
+    - Other file types (STP, STL, ETC)
+    - File Converter (DWG -> STP etc) Probably use some sort of IR for this.

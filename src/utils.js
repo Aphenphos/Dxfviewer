@@ -45,7 +45,6 @@ function scaleVert(vert) {
     };
 }
 function scaleVerts(verts) {
-
     let totalX = 0;
     let totalY = 0;
     const newVerts = [];

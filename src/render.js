@@ -164,8 +164,14 @@ function renderEntities() {
                     curEnt.vertices[0].bulge);
                 break;
             }
+            case("BARC"): {
+                drawArcFromBulge(
+                    projectToScreen(curEnt.vertices[0]), 
+                    projectToScreen(curEnt.vertices[1]), 
+                    curEnt.vertices[0].bulge);
+                break;   
+            }
             case("CIRCLE"): {
-                console.log(curEnt);
                 drawArcFromBulge(
                     projectToScreen(curEnt.vertices[0]), 
                     projectToScreen(curEnt.vertices[1]), 
