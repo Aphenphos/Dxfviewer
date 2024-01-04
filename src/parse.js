@@ -1,11 +1,15 @@
 import { DxfParser } from 'dxf-parser';
 import { addEntityToScene, moveCamera, setCameraPos, wipeEntities } from "./render";
-import { arcToArcWithBulge, normalize2DCoordinatesToScreen, scaleVert, last, shape } from './utils';
+import { arcToArcWithBulge, normalize2DCoordinatesToScreen, scaleVert, last, shape, outFile, normalize_array } from './utils';
+import { downloadFile } from './output';
 
 
 //Maximum coordinate for x and y so for 1000 inches we use 500 so minX = -500 and max is 500;
 
 //yes this is fairly slow but is only done one time on file load and
+const extractB = document.getElementById("extract")
+const temp = new outFile();
+extractB.addEventListener("click", () => downloadFile(temp.data, "letters.json", "text"))
 function handleDXF(fileString, is2D = true) { 
     const parser = new DxfParser();
     try {
@@ -15,11 +19,18 @@ function handleDXF(fileString, is2D = true) {
         for (const s of shapes) {
             find2DShapeBoundingBox(s);
         }
+        //Write a real way to extract into json and make it robust for later.
         //draw size for each shape
         wipeEntities();
         for (let i=0; i < entities.length; i++) {
             let ent = entities[i];
-            console.log(ent);
+            temp.data.push(`
+            "letter":
+            {   
+                "innerVertices": "null",
+                "vertices" : ${JSON.stringify(ent.vertices)}
+            }
+            `);
             switch (ent.type) {
                 case ("LWPOLYLINE"): {
                     const verts = []

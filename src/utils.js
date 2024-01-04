@@ -12,6 +12,30 @@ function clamp(val, min, max) {
     return test > max ? max : test;
 }
 
+function normalize_array(arr) {
+
+    const normalize = function(val, max, min) { 
+      return (val - min) / (max - min); 
+    }
+  
+    const maxX = Math.max.apply(null, arr.map(function(obj) { return obj.x; })) 
+    const minX = Math.min.apply(null, arr.map(function(obj) { return obj.x; }))
+    
+    const maxY = Math.max.apply(null, arr.map(function(obj) { return obj.y; })) 
+    const minY = Math.min.apply(null, arr.map(function(obj) { return obj.y; }))
+  
+    const hold_normed_values=[]
+    arr.forEach(function(this_obj) {
+      hold_normed_values.push({
+        x: normalize(this_obj.x, maxX, minX),
+        y: normalize(this_obj.y, maxY, minY)
+      })
+    })
+  
+    return hold_normed_values;
+  
+  }
+
 function arcToArcWithBulge(arc) {
     const startAngle = arc.startAngle   
     let endAngle = arc.endAngle
@@ -180,8 +204,15 @@ class mouseInput {
     }
 }
 
+class outFile {
+    data; name; type;
+    constructor(data=[], name="test", type="json") {
+        this.data = data; this.name = name; this.type=type;
+    }
+}
+
 export { renderer, camera, vec2d, shape,
-         vec3d, scene, mouseInput, 
+         vec3d, scene, mouseInput, outFile, 
          clamp, degToRad, sleep, last,
-         normalizeCoordinates2D, normalize2DCoordinatesToScreen,  unNormalizeCoordinates2D, 
+         normalizeCoordinates2D, normalize2DCoordinatesToScreen,  normalize_array, unNormalizeCoordinates2D, 
          rotatePoint, arcToArcWithBulge, scaleVerts, scaleVert, WorkSpaceSize, scaleFactor }
