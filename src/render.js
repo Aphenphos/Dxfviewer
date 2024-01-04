@@ -1,6 +1,7 @@
 import { gridEnabled } from "./input";
 import { camera, renderer, vec3d, scene, vec2d, WorkSpaceSize, scaleFactor, normalizeCoordinates2D, scaleVert, rotatePoint, sleep } from "./utils";
-
+import characters from "./raw/characters.json" assert {type: "json"};
+console.log(characters.A)
 const Scene = new scene();
 
 function initRenderer(fov, near, far, rotation) {
@@ -56,7 +57,34 @@ function drawLine(p1,p2) {
     Scene.context.closePath();
 }
 
+
+function drawString(string, pos) {
+    let curOffset = 0;
+    for (const c in string) {
+        drawCharacter(c)
+    }
+}
+function drawCharacter(char, offset) {
+    //reparse the letters and normalise them so they are much easier to use.
+    const toDraw = characters[char];
+    for (let i = 0; i < toDraw.vertices.length; i++) {
+        let j = i+ 1
+        if (j >= toDraw.vertices.length) {
+            j = 0;
+        }
+        let p1 = toDraw.vertices[i];
+        let p2 = toDraw.vertices[j];
+        p1 = normalizeCoordinates2D(p1.x,p1.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
+        p2 = normalizeCoordinates2D(p2.x,p2.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
+        drawLine(projectToScreen(p1), projectToScreen(p2));
+    }
+    if (toDraw.innerVertices) {
+        for (let i = 0; i < toDraw.innerVertices.length)
+    }
+}
+
 function drawGrid() {
+    
     for (let i = -WorkSpaceSize; i < WorkSpaceSize; i += scaleFactor) {
         //draw X
         let x1 = normalizeCoordinates2D(i - .5,-WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize);
@@ -123,6 +151,7 @@ function drawArcFromBulge(p1,p2, bulge) {
 }
 
 function renderEntities() {
+    drawCharacter("B")
     if (gridEnabled) {
         drawGrid();
     }

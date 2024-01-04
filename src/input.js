@@ -44,7 +44,7 @@ function handleMouseUp(up) {
 }
 
 function mouseActive(event) {
-    if (MouseInputs.active == true) {
+    if (MouseInputs.active === true) {
         let deltaX = (MouseInputs.initialPosition.x - event.clientX);
         let deltaY = (MouseInputs.initialPosition.y - event.clientY);
         const camPos = getCameraPos();

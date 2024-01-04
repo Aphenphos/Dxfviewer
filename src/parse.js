@@ -24,13 +24,6 @@ function handleDXF(fileString, is2D = true) {
         wipeEntities();
         for (let i=0; i < entities.length; i++) {
             let ent = entities[i];
-            temp.data.push(`
-            "letter":
-            {   
-                "innerVertices": "null",
-                "vertices" : ${JSON.stringify(ent.vertices)}
-            }
-            `);
             switch (ent.type) {
                 case ("LWPOLYLINE"): {
                     const verts = []
