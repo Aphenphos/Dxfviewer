@@ -126,7 +126,8 @@ function rotatePoint(point, rotation) {
 function normalizeCoordinates2D(originalX, originalY, minX, maxX, minY, maxY) {
     let normalizedX = 2 * (originalX - minX) / (maxX - minX) - 1;
     let normalizedY = 2 * (originalY - minY) / (maxY - minY) - 1;
-    return new vec3d(normalizedX, normalizedY, 1);
+    const result = new vec3d(normalizedX, normalizedY, 1)
+    return result;
 }
 
 function normalize2DCoordinatesToScreen(point) {
@@ -140,6 +141,10 @@ function unNormalizeCoordinates2D(normalizedX, normalizedY, minX, maxX, minY, ma
     let originalX = normalizedX * (maxX - minX) + minX;
     let originalY = normalizedY * (maxY - minY) + minY;
     return new vec3d(originalX, originalY, 0);
+}
+
+function normaliseToSelf(shape) {
+    //loop through shape and its inner shapes and normalise all of them to the shape itself.
 }
 
 function degToRad(deg) {

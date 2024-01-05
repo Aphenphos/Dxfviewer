@@ -60,13 +60,13 @@ function drawLine(p1,p2) {
 
 function drawString(string, pos) {
     let curOffset = 0;
-    for (const c in string) {
-        drawCharacter(c)
+    for (let i = 0; i < string.length; i++) {
+        drawCharacter(string[i]);
     }
 }
 function drawCharacter(char, offset) {
     //reparse the letters and normalise them so they are much easier to use.
-    const toDraw = characters[char];
+    const toDraw = characters[char]
     for (let i = 0; i < toDraw.vertices.length; i++) {
         let j = i+ 1
         if (j >= toDraw.vertices.length) {
@@ -79,7 +79,19 @@ function drawCharacter(char, offset) {
         drawLine(projectToScreen(p1), projectToScreen(p2));
     }
     if (toDraw.innerVertices) {
-        for (let i = 0; i < toDraw.innerVertices.length)
+        for (let i = 0; i < toDraw.innerVertices.length; i++) {
+            for (let j = 0; j < toDraw.innerVertices[i].length; j++) {
+                let k = j + 1;
+                if (k >= toDraw.innerVertices[i].length) {
+                    k = 0;
+                }
+                let p1 = toDraw.innerVertices[i][j];
+                let p2 = toDraw.innerVertices[i][k];
+                p1 = normalizeCoordinates2D(p1.x,p1.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
+                p2 = normalizeCoordinates2D(p2.x,p2.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
+                drawLine(projectToScreen(p1), projectToScreen(p2));
+            }
+        }
     }
 }
 
@@ -106,7 +118,7 @@ function drawArc(arc) {
         let point1 = {x: center.x, y: center.y, z: 0};
         let point2 = {x: center.x + radius, y: center.y, z: 0};
         // Project the points to the screen
-                // Calculate the distance between the projected points
+        // Calculate the distance between the projected points
         let dx = point2.x - point1.x;
         let dy = point2.y - point1.y;
         let projectedRadius = Math.sqrt(dx * dx + dy * dy);
@@ -151,7 +163,7 @@ function drawArcFromBulge(p1,p2, bulge) {
 }
 
 function renderEntities() {
-    drawCharacter("B")
+    drawString(["A","B",'C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','1','2','3','4','5','6','7','8','9','0']);
     if (gridEnabled) {
         drawGrid();
     }
