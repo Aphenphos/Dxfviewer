@@ -143,10 +143,6 @@ function unNormalizeCoordinates2D(normalizedX, normalizedY, minX, maxX, minY, ma
     return new vec3d(originalX, originalY, 0);
 }
 
-function normaliseToSelf(shape) {
-    //loop through shape and its inner shapes and normalise all of them to the shape itself.
-}
-
 function degToRad(deg) {
     return deg * Math.PI / 180;
 }
@@ -168,10 +164,19 @@ class vec3d {
     }
 }
 
+class entity {
+    type; vertices;
+    constructor(type, vertices = []) {
+        this.type = type;
+        this.vertices = vertices;
+    }
+}
+
 class shape {
-    entities; vertCnt; minX; maxX; minY; maxY;
+    entities; children; vertCnt; minX; maxX; minY; maxY;
     constructor(entities = []) {
         this.entities = entities;
+        this.children = [];
         this.vertCnt = 0;
         this.minX = 0;
         this.maxX = 0;
@@ -216,7 +221,7 @@ class outFile {
     }
 }
 
-export { renderer, camera, vec2d, shape,
+export { renderer, camera, vec2d, shape, entity,
          vec3d, scene, mouseInput, outFile, 
          clamp, degToRad, sleep, last,
          normalizeCoordinates2D, normalize2DCoordinatesToScreen,  normalize_array, unNormalizeCoordinates2D, 

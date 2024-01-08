@@ -1,7 +1,8 @@
 import { DxfParser } from 'dxf-parser';
 import { addEntityToScene, moveCamera, setCameraPos, wipeEntities } from "./render";
-import { arcToArcWithBulge, normalize2DCoordinatesToScreen, scaleVert, last, shape, outFile, normalize_array } from './utils';
+import { arcToArcWithBulge, normalize2DCoordinatesToScreen, scaleVert, last, shape, outFile, normalize_array, entity, normalizeCoordinates2D } from './utils';
 import { downloadFile } from './output';
+import characters from "./raw/characters.json" assert {type: "json"};
 
 
 //Maximum coordinate for x and y so for 1000 inches we use 500 so minX = -500 and max is 500;
@@ -199,7 +200,20 @@ function findShapes(entities) {
     }
     return finalShapes;
 }
+normaliseShapeToSelf(new shape([new entity("LINE", characters["A"].vertices)]));
 
+function normaliseShapeToSelf(shape) {
+    //loop through shape and its inner shapes and normalise all of them to the shape itself.
+    const parsedShape = find2DShapeBoundingBox(shape);
+    for (let i = 0; i < shape.entities.length; i++) {
+        let curEnt = shape.entities[i];
+        for (let j = 0; j < curEnt.vertices.length; j++) {
+            let curVertice = curEnt.vertices[j];
+            const curVerticeNormalised = normalizeCoordinates2D(curVertice.x, curVertice.y, shape.minX, shape.maxX, shape.minY, shape.maxY);
+            console.log(curVerticeNormalised);
+        }
+    }
+}
 
 function find2DShapeBoundingBox(shape) {
     const shapeLen = shape.entities.length;
@@ -207,6 +221,7 @@ function find2DShapeBoundingBox(shape) {
     let minX = 10000, maxX = -1000, minY = 10000, maxY = -10000, totalVerts = 0;
     for (let i=0; i < shapeLen; i++) {
         const vertCount = shape.entities[i].vertices.length;
+        console.log(vertCount);
         for (let j=0; j < vertCount; j++) {
             totalVerts++;
             const curVert = shape.entities[i].vertices[j];

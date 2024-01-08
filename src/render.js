@@ -1,5 +1,5 @@
 import { gridEnabled } from "./input";
-import { camera, renderer, vec3d, scene, vec2d, WorkSpaceSize, scaleFactor, normalizeCoordinates2D, scaleVert, rotatePoint, sleep } from "./utils";
+import { camera, renderer, vec3d, scene, vec2d, WorkSpaceSize, scaleFactor, normalizeCoordinates2D, scaleVert, rotatePoint, sleep, shape, entity } from "./utils";
 import characters from "./raw/characters.json" assert {type: "json"};
 console.log(characters.A)
 const Scene = new scene();
