@@ -1,6 +1,9 @@
 //I hate this language;
 //classes purely for organizational purposes and ease of initializiation
 //no class methods because afaik it slows things down massively as your
+
+import { stringifySet } from "./output";
+
 //object count increases
 const WorkSpaceSize = 1000;
 const scaleFactor = 10.0;
@@ -143,6 +146,10 @@ function unNormalizeCoordinates2D(normalizedX, normalizedY, minX, maxX, minY, ma
     return new vec3d(originalX, originalY, 0);
 }
 
+function translateVec2D(vec, translateVec) {
+    return new vec2d(vec.x + translateVec.x, vec.y + translateVec.y);
+}
+
 function degToRad(deg) {
     return deg * Math.PI / 180;
 }
@@ -173,15 +180,29 @@ class entity {
 }
 
 class shape {
-    entities; children; vertCnt; minX; maxX; minY; maxY;
-    constructor(entities = []) {
+    entities; children; vertCnt; isNormalised; minX; maxX; minY; maxY;
+    static id = 0;
+    static shapes = new Set();
+    constructor(entities = [], name=null) {
+        this.id = shape.id++;
+        if (name=== null) {
+            this.name = this.id;
+        } else {
+            if (this.name in shape.shapes) {
+                //handle this here
+            } else {
+                this.name = name;
+            }
+        }
         this.entities = entities;
         this.children = [];
         this.vertCnt = 0;
-        this.minX = 0;
-        this.maxX = 0;
-        this.minY = 0;
-        this.maxY = 0;
+        this.isNormalised = false;
+        this.minX = null;
+        this.maxX = null;
+        this.minY = null;
+        this.maxY = null;
+        shape.shapes.add(this);
     }
 }
 
@@ -224,5 +245,6 @@ class outFile {
 export { renderer, camera, vec2d, shape, entity,
          vec3d, scene, mouseInput, outFile, 
          clamp, degToRad, sleep, last,
+         translateVec2D,
          normalizeCoordinates2D, normalize2DCoordinatesToScreen,  normalize_array, unNormalizeCoordinates2D, 
          rotatePoint, arcToArcWithBulge, scaleVerts, scaleVert, WorkSpaceSize, scaleFactor }

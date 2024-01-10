@@ -1,7 +1,7 @@
 import { gridEnabled } from "./input";
-import { camera, renderer, vec3d, scene, vec2d, WorkSpaceSize, scaleFactor, normalizeCoordinates2D, scaleVert, rotatePoint, sleep, shape, entity } from "./utils";
-import characters from "./raw/characters.json" assert {type: "json"};
-console.log(characters.A)
+import { camera, renderer, vec3d, scene, vec2d, WorkSpaceSize, scaleFactor, normalizeCoordinates2D, scaleVert, rotatePoint, sleep, shape, entity, translateVec2D } from "./utils";
+import chars from "./raw/charsNormalised.json" assert {type: "json"};
+
 const Scene = new scene();
 
 function initRenderer(fov, near, far, rotation) {
@@ -58,45 +58,55 @@ function drawLine(p1,p2) {
 }
 
 
-function drawString(string, pos) {
-    let curOffset = 0;
+function drawString(string, pos, scale) {
+    let curOffset = new vec2d(0,0);
     for (let i = 0; i < string.length; i++) {
-        drawCharacter(string[i]);
+        curOffset.x+=scale * (2.5/scale)
+        drawCharacter(string[i], curOffset, scale);
     }
 }
-function drawCharacter(char, offset) {
+function drawCharacter(char, offset, scale) {
     //reparse the letters and normalise them so they are much easier to use.
-    const toDraw = characters[char]
-    for (let i = 0; i < toDraw.vertices.length; i++) {
+    const toDraw = chars[char]
+    for (let i = 0; i < toDraw.entities[0].vertices.length; i++) {
         let j = i+ 1
-        if (j >= toDraw.vertices.length) {
+        if (j >= toDraw.entities[0].vertices.length) {
             j = 0;
         }
-        let p1 = toDraw.vertices[i];
-        let p2 = toDraw.vertices[j];
+        let p1 = toDraw.entities[0].vertices[i];
+        let p2 = toDraw.entities[0].vertices[j]; 
+        p1 = translateVec2D(p1,offset)
+        p2 = translateVec2D(p2,offset)
+        p1 = scaleVert(p1,scale)
+        p2 = scaleVert(p2,scale);
         p1 = normalizeCoordinates2D(p1.x,p1.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
-        p2 = normalizeCoordinates2D(p2.x,p2.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
+        p2 = normalizeCoordinates2D(p2.x,p2.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize); 
         drawLine(projectToScreen(p1), projectToScreen(p2));
     }
-    if (toDraw.innerVertices) {
-        for (let i = 0; i < toDraw.innerVertices.length; i++) {
-            for (let j = 0; j < toDraw.innerVertices[i].length; j++) {
-                let k = j + 1;
-                if (k >= toDraw.innerVertices[i].length) {
-                    k = 0;
+    if (toDraw.children != []) {
+        for (const child of toDraw.children) {
+            for (let i = 0; i < child.entities.length; i++) {
+                for (let j = 0; j < child.entities[i].vertices.length; j++) {
+                    let k = j + 1;
+                    if (k >= child.entities[i].vertices.length) {
+                        k = 0;
+                    }
+                    let p1 = child.entities[i].vertices[j];
+                    let p2 = child.entities[i].vertices[k];
+                    p1 = translateVec2D(p1,offset)
+                    p2 = translateVec2D(p2,offset)
+                    p1 = scaleVert(p1,scale)
+                    p2 = scaleVert(p2,scale);
+                    p1 = normalizeCoordinates2D(p1.x,p1.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
+                    p2 = normalizeCoordinates2D(p2.x,p2.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
+                    drawLine(projectToScreen(p1), projectToScreen(p2));
                 }
-                let p1 = toDraw.innerVertices[i][j];
-                let p2 = toDraw.innerVertices[i][k];
-                p1 = normalizeCoordinates2D(p1.x,p1.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
-                p2 = normalizeCoordinates2D(p2.x,p2.y, -WorkSpaceSize, WorkSpaceSize, -WorkSpaceSize, WorkSpaceSize);
-                drawLine(projectToScreen(p1), projectToScreen(p2));
             }
         }
     }
 }
 
 function drawGrid() {
-    
     for (let i = -WorkSpaceSize; i < WorkSpaceSize; i += scaleFactor) {
         //draw X
         let x1 = normalizeCoordinates2D(i - .5,-WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize,-WorkSpaceSize,WorkSpaceSize);
@@ -163,7 +173,9 @@ function drawArcFromBulge(p1,p2, bulge) {
 }
 
 function renderEntities() {
-    drawString(["A","B",'C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','1','2','3','4','5','6','7','8','9','0']);
+    // drawString(["A","B",'C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','1','2','3','4','5','6','7','8','9','0'],0,1);
+    drawString(["A","B"],0,30);
+
     if (gridEnabled) {
         drawGrid();
     }

@@ -14,4 +14,11 @@ function downloadFile(data, filename, type) {
     a.remove();
 }
 
-export {downloadFile }
+function stringifySet(set) {
+    let obj = {};
+    for (let item of set) {
+        obj[item.name] = item;
+    }
+    return JSON.stringify(obj);
+}
+export {downloadFile, stringifySet }

@@ -3,7 +3,9 @@ import { addEntityToScene, moveCamera, setCameraPos, wipeEntities } from "./rend
 import { arcToArcWithBulge, normalize2DCoordinatesToScreen, scaleVert, last, shape, outFile, normalize_array, entity, normalizeCoordinates2D } from './utils';
 import { downloadFile } from './output';
 import characters from "./raw/characters.json" assert {type: "json"};
+import chars from "./raw/chars.json" assert {type: "json"};
 
+import fs from "fs"
 
 //Maximum coordinate for x and y so for 1000 inches we use 500 so minX = -500 and max is 500;
 
@@ -200,19 +202,63 @@ function findShapes(entities) {
     }
     return finalShapes;
 }
-normaliseShapeToSelf(new shape([new entity("LINE", characters["A"].vertices)]));
+function parseCharsFromJson() {
+    let toObj = {}
+    for (const c in characters) {
+        const charData = characters[c];
+        const toShape = new shape([new entity("LINE", charData.vertices)], c);
+        if (charData.innerVertices != 'null') {
+            for (const inner in charData.innerVertices) {
+                const child = new shape([new entity("LINE", charData.innerVertices[inner])]);
+                toShape.children.push(child);
+            }
+        }
+        const normalised = normaliseShapeToSelf(toShape)
+        toObj[c] = normalised;
+    }
+    downloadFile(JSON.stringify(toObj),"chars.json","text/plain");
+}
+parseCharsFromJson()
 
+function normaliseArrOfShapesToSelf(shapeArr) {
+    const normalised = []
+    for (const shape in shapeArr) {
+        const shapeNormalised = normaliseShapeToSelf(shape);
+        normalised.push(shapeNormalised);
+    }
+    return normalised;
+}
+//Do not do this without good reason.
 function normaliseShapeToSelf(shape) {
+    let parsedShape = shape;
+    if (parsedShape.maxX === null) {
+        parsedShape = find2DShapeBoundingBox(shape);
+    }
     //loop through shape and its inner shapes and normalise all of them to the shape itself.
-    const parsedShape = find2DShapeBoundingBox(shape);
-    for (let i = 0; i < shape.entities.length; i++) {
-        let curEnt = shape.entities[i];
+    for (let i = 0; i < parsedShape.entities.length; i++) {
+        let curEnt = parsedShape.entities[i];
         for (let j = 0; j < curEnt.vertices.length; j++) {
             let curVertice = curEnt.vertices[j];
-            const curVerticeNormalised = normalizeCoordinates2D(curVertice.x, curVertice.y, shape.minX, shape.maxX, shape.minY, shape.maxY);
-            console.log(curVerticeNormalised);
+            const curVerticeNormalised = normalizeCoordinates2D(curVertice.x, curVertice.y, parsedShape.minX, parsedShape.maxX, parsedShape.minY, parsedShape.maxY);
+            parsedShape.entities[i].vertices[j] = curVerticeNormalised;
         }
     }
+    if (parsedShape.children[0]) {
+        for (let c = 0; c < parsedShape.children.length; c++) {
+            let curChild = parsedShape.children[c];
+            for (let i = 0; i < curChild.entities.length; i++) {
+                let curEnt = curChild.entities[i];
+                for (let j = 0; j < curEnt.vertices.length; j++) {
+                    let curVertice = curEnt.vertices[j];
+                    const curVerticeNormalised = normalizeCoordinates2D(curVertice.x, curVertice.y, parsedShape.minX, parsedShape.maxX, parsedShape.minY, parsedShape.maxY);
+                    parsedShape.children[c].entities[i].vertices[j] = curVerticeNormalised;
+                }
+            }
+        }
+    }
+    parsedShape.maxX = parsedShape.maxY = 1;
+    parsedShape.minX = parsedShape.minY = -1;
+    return parsedShape;
 }
 
 function find2DShapeBoundingBox(shape) {
@@ -221,7 +267,6 @@ function find2DShapeBoundingBox(shape) {
     let minX = 10000, maxX = -1000, minY = 10000, maxY = -10000, totalVerts = 0;
     for (let i=0; i < shapeLen; i++) {
         const vertCount = shape.entities[i].vertices.length;
-        console.log(vertCount);
         for (let j=0; j < vertCount; j++) {
             totalVerts++;
             const curVert = shape.entities[i].vertices[j];
