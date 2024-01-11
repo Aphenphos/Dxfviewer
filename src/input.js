@@ -26,8 +26,13 @@ gridToggle.addEventListener("change",() => {
 
 function handleMouseDown(down) {
     MouseInputs.active = true;
+
     MouseInputs.initialPosition.x = down.clientX;
     MouseInputs.initialPosition.y = down.clientY;
+}
+
+function clientCoordsToWorldSpaceCoords(clientXY) {
+    
 }
 
 function handleScrollDown(e) {
