@@ -2,10 +2,8 @@
 //classes purely for organizational purposes and ease of initializiation
 //no class methods because afaik it slows things down massively as your
 
-import { stringifySet } from "./output";
-
 //object count increases
-const WorkSpaceSize = 1000;
+const WorldSpaceSize = 1000;
 const scaleFactor = 10.0;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -134,8 +132,8 @@ function normalizeCoordinates2D(originalX, originalY, minX, maxX, minY, maxY) {
 }
 
 function normalize2DCoordinatesToScreen(point) {
-    let normalizedX = 2 * (point.x - (-WorkSpaceSize)) / (WorkSpaceSize - (-WorkSpaceSize)) - 1;
-    let normalizedY = 2 * (point.y - (-WorkSpaceSize)) / (WorkSpaceSize - (-WorkSpaceSize)) - 1 ;
+    let normalizedX = 2 * (point.x - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
+    let normalizedY = 2 * (point.y - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1 ;
     return new vec3d(normalizedX, normalizedY,1);
 }
 
@@ -146,9 +144,6 @@ function unNormalizeCoordinates2D(normalizedX, normalizedY, minX, maxX, minY, ma
     return new vec3d(originalX, originalY, 0);
 }
 
-function translateVec2D(vec, translateVec) {
-    return new vec2d(vec.x + translateVec.x, vec.y + translateVec.y);
-}
 
 function degToRad(deg) {
     return deg * Math.PI / 180;
@@ -158,9 +153,28 @@ function last(array) {
     return array[array.length - 1];
 }
 class vec2d {
-    x; y;
+    x; y; z;
     constructor(x=0,y=0) {
-        this.x = x; this.y = y;
+        this.x = x; this.y = y; this.z = 1;
+    }
+    scale(scaleFactor) {
+        this.x = this.x * scaleFactor;
+        this.y = this.y * scaleFactor;
+    }
+    normalize(min, max) {
+        this.x = 2 * (this.x - min.x) / (max.x - min.x) - 1;
+        this.y = 2 * (this.y - min.y) / (max.y - min.y) - 1;
+    }
+    translate(translation) {
+        this.x += translation.x; this.y += translation.y;
+    }
+    unNormalize(min, max) {
+        this.x = this.x * (max.x - min.x) + min.x;
+        this.y = this.y * (max.y - min.y) + min.y;
+    }
+    normalizeToWorld() {
+        this.x = 2 * (this.x - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
+        this.y = 2 * (this.y - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
     }
 }
 
@@ -168,6 +182,24 @@ class vec3d {
     x; y; z;
     constructor(x=0,y=0,z=0) {
         this.x = x; this.y = y; this.z = z;
+    }
+    scale(scaleFactor) {
+        this.x = this.x * scaleFactor;
+        this.y = this.y * scaleFactor;
+        this.z = this.z * scaleFactor;
+    }
+    rotate(rotation) {
+        let sinX = Math.sin(rotation.x);
+        let cosX = Math.cos(rotation.x);
+        let sinY = Math.sin(rotation.y);
+        let cosY = Math.cos(rotation.y);
+        let sinZ = Math.sin(rotation.z);
+        let cosZ = Math.cos(rotation.z);
+        let dx = this.x * cosY * cosZ + this.y * (cosZ * sinX * sinY - cosX * sinZ) + this.z * (sinX * sinZ + cosX * cosZ * sinY);
+        let dy = this.x * cosY * sinZ + this.y * (cosX * cosZ + sinX * sinY * sinZ) + this.z * (cosX * sinY * sinZ - cosZ * sinX);
+        let dz = this.x * -sinY + this.y * cosY * sinX + this.z * cosX * cosY;
+
+        this.x = dx; this.y = dy; this.z = dz;
     }
 }
 
@@ -180,29 +212,61 @@ class entity {
 }
 
 class shape {
-    entities; children; vertCnt; isNormalised; minX; maxX; minY; maxY;
+    entities; children; parent; isNormalised; is3D;
     static id = 0;
-    static shapes = new Set();
     constructor(entities = [], name=null) {
         this.id = shape.id++;
-        if (name=== null) {
-            this.name = this.id;
-        } else {
-            if (this.name in shape.shapes) {
-                //handle this here
-            } else {
-                this.name = name;
-            }
-        }
+        this.name = name;
         this.entities = entities;
         this.children = [];
-        this.vertCnt = 0;
+        this.parent = null;
         this.isNormalised = false;
-        this.minX = null;
-        this.maxX = null;
-        this.minY = null;
-        this.maxY = null;
-        shape.shapes.add(this);
+        this.boundingBox = null
+        this.is3D = false;
+    }
+    findBoundingBox() {
+        const size = this.entities.length;
+        let minX = Infinity; let minY = Infinity; let minZ = Infinity;
+        let maxX = -Infinity; let maxY = -Infinity; let maxZ = -Infinity;
+        for (let i=0; i < size; i++) {
+            const vertCount = this.entities[i].vertices.length;
+            for (let j=0; j < vertCount; j++) {
+                const curVert = this.entities[i].vertices[j];
+                if (curVert.x > maxX) maxX = curVert.x;
+                if (curVert.x < minX) minX = curVert.x;
+                if (curVert.y > maxY) maxY = curVert.y;
+                if (curVert.y < minY) minY = curVert.y;
+                if (this.is3D) {
+                    if (curVert.z > maxZ) maxZ = curVert.z;
+                    if (curVert.z < minZ) minZ = curVert.z;
+                }
+            }
+        }
+        if (this.is3D) {
+            this.boundingBox = {
+                min: new vec3d(minX,minY,minZ),
+                max: new vec3d(maxX,maxY,maxZ)
+            }
+        } else {
+            this.boundingBox = {
+                min: new vec2d(minX, minY),
+                max: new vec2d(maxX,maxY)
+            }
+        }
+    }
+    normalizeToSelf() {
+        if (this.boundingBox === null) {
+            this.findBoundingBox();
+        }
+        for (let i=0; i < this.entities.length; i++) {
+            const curEnt = this.entities[i];
+            for (let j=0; j < curEnt.vertices.length; j++) {
+                const curVert = curEnt.vertices[j];
+                curVert.normalize(this.boundingBox.min, this.boundingBox.max);
+            }
+        }
+        this.isNormalised = true;
+        this.boundingBox = null;
     }
 }
 
@@ -245,6 +309,5 @@ class outFile {
 export { renderer, camera, vec2d, shape, entity,
          vec3d, scene, mouseInput, outFile, 
          clamp, degToRad, sleep, last,
-         translateVec2D,
          normalizeCoordinates2D, normalize2DCoordinatesToScreen,  normalize_array, unNormalizeCoordinates2D, 
-         rotatePoint, arcToArcWithBulge, scaleVerts, scaleVert, WorkSpaceSize, scaleFactor }
+         rotatePoint, arcToArcWithBulge, scaleVerts, scaleVert, WorldSpaceSize, scaleFactor }

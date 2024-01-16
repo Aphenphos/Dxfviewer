@@ -2,8 +2,6 @@ import { DxfParser } from 'dxf-parser';
 import { addEntityToScene, moveCamera, setCameraPos, wipeEntities } from "./render";
 import { arcToArcWithBulge, normalize2DCoordinatesToScreen, scaleVert, last, shape, outFile, normalize_array, entity, normalizeCoordinates2D } from './utils';
 import { downloadFile } from './output';
-import characters from "./raw/characters.json" assert {type: "json"};
-import chars from "./raw/chars.json" assert {type: "json"};
 
 import fs from "fs"
 
@@ -18,10 +16,8 @@ function handleDXF(fileString, is2D = true) {
     try {
         const dxf = parser.parseSync(fileString);
         const entities = dxf.entities;
-        const shapes = findShapes(entities);
-        for (const s of shapes) {
-            find2DShapeBoundingBox(s);
-        }
+        console.log(entities);
+        findShapes(entities);
         //Write a real way to extract into json and make it robust for later.
         //draw size for each shape
         wipeEntities();
@@ -141,10 +137,6 @@ function findShapes(entities) {
                 }
                 entities[j] = newArc;
             };
-            //having same issue as python parser (since vertices are in random order makes doing 4 checks necessary which is sloppy)
-            //(need to figure out a way to order things easier and make this less sloppy)
-            // though it works I do not like it
-            
             if (isClose(entities[j].vertices[0], last(currentShape[currentShape.length - 1].vertices)) ||
                 isClose(last(entities[j].vertices), last(currentShape[currentShape.length - 1].vertices)) ||
                 isClose(last(entities[j].vertices), currentShape[currentShape.length - 1].vertices[0]) || 
@@ -202,98 +194,8 @@ function findShapes(entities) {
     }
     return finalShapes;
 }
-function parseCharsFromJson() {
-    let toObj = {}
-    for (const c in characters) {
-        const charData = characters[c];
-        const toShape = new shape([new entity("LINE", charData.vertices)], c);
-        if (charData.innerVertices != 'null') {
-            for (const inner in charData.innerVertices) {
-                const child = new shape([new entity("LINE", charData.innerVertices[inner])]);
-                toShape.children.push(child);
-            }
-        }
-        const normalised = normaliseShapeToSelf(toShape)
-        toObj[c] = normalised;
-    }
-    downloadFile(JSON.stringify(toObj),"chars.json","text/plain");
-}
-parseCharsFromJson()
-
-function normaliseArrOfShapesToSelf(shapeArr) {
-    const normalised = []
-    for (const shape in shapeArr) {
-        const shapeNormalised = normaliseShapeToSelf(shape);
-        normalised.push(shapeNormalised);
-    }
-    return normalised;
-}
-//Do not do this without good reason.
-function normaliseShapeToSelf(shape) {
-    let parsedShape = shape;
-    if (parsedShape.maxX === null) {
-        parsedShape = find2DShapeBoundingBox(shape);
-    }
-    //loop through shape and its inner shapes and normalise all of them to the shape itself.
-    for (let i = 0; i < parsedShape.entities.length; i++) {
-        let curEnt = parsedShape.entities[i];
-        for (let j = 0; j < curEnt.vertices.length; j++) {
-            let curVertice = curEnt.vertices[j];
-            const curVerticeNormalised = normalizeCoordinates2D(curVertice.x, curVertice.y, parsedShape.minX, parsedShape.maxX, parsedShape.minY, parsedShape.maxY);
-            parsedShape.entities[i].vertices[j] = curVerticeNormalised;
-        }
-    }
-    if (parsedShape.children[0]) {
-        for (let c = 0; c < parsedShape.children.length; c++) {
-            let curChild = parsedShape.children[c];
-            for (let i = 0; i < curChild.entities.length; i++) {
-                let curEnt = curChild.entities[i];
-                for (let j = 0; j < curEnt.vertices.length; j++) {
-                    let curVertice = curEnt.vertices[j];
-                    const curVerticeNormalised = normalizeCoordinates2D(curVertice.x, curVertice.y, parsedShape.minX, parsedShape.maxX, parsedShape.minY, parsedShape.maxY);
-                    parsedShape.children[c].entities[i].vertices[j] = curVerticeNormalised;
-                }
-            }
-        }
-    }
-    parsedShape.maxX = parsedShape.maxY = 1;
-    parsedShape.minX = parsedShape.minY = -1;
-    return parsedShape;
-}
-
-function find2DShapeBoundingBox(shape) {
-    const shapeLen = shape.entities.length;
-    //make min/max ridiculously high and low for first check to always be true
-    let minX = 10000, maxX = -1000, minY = 10000, maxY = -10000, totalVerts = 0;
-    for (let i=0; i < shapeLen; i++) {
-        const vertCount = shape.entities[i].vertices.length;
-        for (let j=0; j < vertCount; j++) {
-            totalVerts++;
-            const curVert = shape.entities[i].vertices[j];
-                if (curVert.x > maxX) {
-                    maxX = curVert.x;
-                }
-                if (curVert.x < minX) {
-                    minX = curVert.x;
-                }
-                if (curVert.y > maxY) {
-                    maxY = curVert.y;
-                }
-                if (curVert.y < minY) {
-                    minY = curVert.y;
-                }
-        }  
-    }
-    shape.minX = minX; shape.maxX = maxX; shape.minY = minY; shape.maxY = maxY, shape.vertCnt = totalVerts;
-    return shape;
-}
-
-function addBoundingBoxDimensions(shape) {
-    const difX = shape.maxX - shape.minX;
-    const difY = shape.maxY - shape.minY;
 
 
-}
 // let toShapes = [];
 // let used = new Set();
 // let shape = [null];
