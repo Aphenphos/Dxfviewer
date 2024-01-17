@@ -1,9 +1,8 @@
 import { DxfParser } from 'dxf-parser';
 import { addEntityToScene, moveCamera, setCameraPos, wipeEntities } from "./render";
-import { arcToArcWithBulge, normalize2DCoordinatesToScreen, scaleVert, last, shape, outFile, normalize_array, entity, normalizeCoordinates2D } from './utils';
+import { arcToArcWithBulge, normalize2DCoordinatesToScreen, scaleVert, last, shape, outFile, normalize_array, entity2D, entity3D, normalizeCoordinates2D } from './utils';
 import { downloadFile } from './output';
 
-import fs from "fs"
 
 //Maximum coordinate for x and y so for 1000 inches we use 500 so minX = -500 and max is 500;
 
@@ -16,8 +15,8 @@ function handleDXF(fileString, is2D = true) {
     try {
         const dxf = parser.parseSync(fileString);
         const entities = dxf.entities;
-        console.log(entities);
-        findShapes(entities);
+        parseEntities(entities);
+        // findShapes(entities);
         //Write a real way to extract into json and make it robust for later.
         //draw size for each shape
         wipeEntities();
@@ -119,7 +118,7 @@ function findShapes(entities) {
     function findNextEnt() {
         for (let j = 0; j < entCount; j++) {
             if (entities[j].type === "DIMENSION") {
-                continue;
+                continue; 
             }
             if (usedEnts.has(j)) {
                 continue;
@@ -195,7 +194,77 @@ function findShapes(entities) {
     return finalShapes;
 }
 
+function parseEntities(ents) {
+    console.log(ents);
+    const parsedEnts = [];
+    for (let i=0; i < ents.length; i++) {
+        const currentEnt = ents[i];
+        let parsed;
+        switch(currentEnt.type) {
+            case ("LWPOLYLINE"): {
+                if (currentEnt.elevation) {
+                    parsed = parse3DPolyline(currentEnt);
+                } else {
+                    parsed = parse2DPolyLine(currentEnt);
+                }
+                parsedEnts.push(parsed);
+                break;
+            }
+            case("POLYLINE"): {
+                parsePolyline(currentEnt)
+            }
+            case ("LINE"): {
+                if (currentEnt.vertices[0].z) {
+                    parsed = parse3DLine(currentEnt);
+                } else {
+                    parsed = parse2DLine(currentEnt);
+                }
+                parsedEnts.push(parsed);
+                break;
+            }
+            case("ARC"): {
+                console.log(currentEnt);
+                if (currentEnt.center.z != 0) {
+                    parsed = parse3DArc(currentEnt);
+                } else {
+                    parsed = parse2DArc(currentEnt);
+                }
+                parsedEnts.push(parsed);
+                break;
+            }
+            case("CIRCLE"): {
 
+            }
+            default: break;
+        }
+    }
+}
+
+function parse2DPolyLine(polyline) {
+
+}
+
+function parse3DPolyline(polyline) {
+
+}
+
+function parse2DLine(line) {
+
+}
+function parse3DLine(line) {
+
+}
+
+function parse2DArc(arc) {
+
+}
+function parse3DArc(arc) {
+
+}
+
+function parsePolyline(polyline) {
+
+}
 // let toShapes = [];
 // let used = new Set();
 // let shape = [null];

@@ -203,12 +203,16 @@ class vec3d {
     }
 }
 
-class entity {
+class entity2D {
     type; vertices;
-    constructor(type, vertices = []) {
+    constructor(type=null, vertices = []) {
         this.type = type;
         this.vertices = vertices;
     }
+}
+
+class entity3D {
+    type; vertices; extrusionDirection;
 }
 
 class shape {
@@ -306,7 +310,7 @@ class outFile {
     }
 }
 
-export { renderer, camera, vec2d, shape, entity,
+export { renderer, camera, vec2d, shape, entity2D, entity3D,
          vec3d, scene, mouseInput, outFile, 
          clamp, degToRad, sleep, last,
          normalizeCoordinates2D, normalize2DCoordinatesToScreen,  normalize_array, unNormalizeCoordinates2D, 

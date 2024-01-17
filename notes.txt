@@ -10,3 +10,5 @@ TO ADD -
     - 3D support
     - Other file types (STP, STL, ETC)
     - File Converter (DWG -> STP etc) Probably use some sort of IR for this.
+    - add swizzling
+    
