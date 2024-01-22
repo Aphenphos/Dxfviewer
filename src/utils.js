@@ -37,6 +37,26 @@ function normalize_array(arr) {
   
   }
 
+function bulgeToArc(p1, p2) {
+    const theta = Math.atan(p1.bulge) * 4;
+    const distance = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+    const rad = distance / 2 / Math.sin(theta / 2);
+    const angleMid = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+    const angleCenter =  angleMid + (p1.bulge > 0 ? -1 : 1) * Math.PI / 2;
+    const center = new vec2d(
+        (p1.x + p2.x) / 2 + rad * Math.cos(angleCenter),
+        (p1.y + p2.y) / 2 + rad * Math.sin(angleCenter)
+    );
+    const startAngle = Math.atan2(p1.y - center.y, p2.x - center.x) * (Math.PI / 180);
+    const endAngle = Math.atan2(p2.y - center.y, p2.x - center.x) * (Math.PI / 180);
+    const attribs = {
+        startAngle,
+        endAngle,
+        radius: rad
+    }
+    return new entity2D("ARC", center, attribs);
+}
+
 function arcToArcWithBulge(arc) {
     const startAngle = arc.startAngle   
     let endAngle = arc.endAngle
@@ -68,6 +88,10 @@ function scaleVert(vert) {
         y: vert.y * scaleFactor,
         z: 1
     };
+}
+
+function scaleRad(rad) {
+    return rad * scaleFactor;
 }
 function scaleVerts(verts) {
     let totalX = 0;
@@ -110,20 +134,6 @@ function scaleVerts(verts) {
     return newVerts;    
 }
 
-function rotatePoint(point, rotation) {
-    let sinX = Math.sin(rotation.x);
-    let cosX = Math.cos(rotation.x);
-    let sinY = Math.sin(rotation.y);
-    let cosY = Math.cos(rotation.y);
-    let sinZ = Math.sin(rotation.z);
-    let cosZ = Math.cos(rotation.z);
-    let dx = point.x * cosY * cosZ + point.y * (cosZ * sinX * sinY - cosX * sinZ) + point.z * (sinX * sinZ + cosX * cosZ * sinY);
-    let dy = point.x * cosY * sinZ + point.y * (cosX * cosZ + sinX * sinY * sinZ) + point.z * (cosX * sinY * sinZ - cosZ * sinX);
-    let dz = point.x * -sinY + point.y * cosY * sinX + point.z * cosX * cosY;
-
-    return new vec3d(dx, dy, dz);
-}
-
 function normalizeCoordinates2D(originalX, originalY, minX, maxX, minY, maxY) {
     let normalizedX = 2 * (originalX - minX) / (maxX - minX) - 1;
     let normalizedY = 2 * (originalY - minY) / (maxY - minY) - 1;
@@ -137,6 +147,9 @@ function normalize2DCoordinatesToScreen(point) {
     return new vec3d(normalizedX, normalizedY,1);
 }
 
+function normalizeRadiusToScreen(rad) {
+    return 2 * (rad - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
+}
 // Function to un-normalize 2D coordinates
 function unNormalizeCoordinates2D(normalizedX, normalizedY, minX, maxX, minY, maxY) {
     let originalX = normalizedX * (maxX - minX) + minX;
@@ -204,15 +217,21 @@ class vec3d {
 }
 
 class entity2D {
-    type; vertices;
-    constructor(type=null, vertices = []) {
+    type; vertices; attribs;
+    constructor(type=null, vertices=[], attribs = {}) {
         this.type = type;
         this.vertices = vertices;
+        this.attribs = attribs;
     }
 }
 
 class entity3D {
     type; vertices; extrusionDirection;
+    constructor(type=null, vertices=[], extrusionDirection=null) {
+        this.type = type; 
+        this.vertices = vertices; 
+        this.extrusionDirection = extrusionDirection;
+    }
 }
 
 class shape {
@@ -312,6 +331,6 @@ class outFile {
 
 export { renderer, camera, vec2d, shape, entity2D, entity3D,
          vec3d, scene, mouseInput, outFile, 
-         clamp, degToRad, sleep, last,
+         clamp, degToRad, sleep, last, bulgeToArc, normalizeRadiusToScreen, scaleRad,
          normalizeCoordinates2D, normalize2DCoordinatesToScreen,  normalize_array, unNormalizeCoordinates2D, 
-         rotatePoint, arcToArcWithBulge, scaleVerts, scaleVert, WorldSpaceSize, scaleFactor }
+         arcToArcWithBulge, scaleVerts, scaleVert, WorldSpaceSize, scaleFactor }

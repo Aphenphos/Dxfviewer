@@ -1,5 +1,5 @@
 import { gridEnabled } from "./input";
-import { camera, renderer, vec3d, scene, vec2d, WorldSpaceSize, scaleFactor,rotatePoint, sleep, shape, entity2D, entity3D } from "./utils";
+import { camera, renderer, vec3d, scene, vec2d, WorldSpaceSize, scaleFactor,  sleep, shape, entity2D, entity3D } from "./utils";
 import chars from "./raw/charsNormalised.json" assert {type: "json"};
 
 const Scene = new scene();
@@ -124,20 +124,10 @@ function drawGrid() {
 }
 
 function drawArc(arc) {
-    function projectRadiusToScreen(center, radius) {
-        // Create two points that are `radius` distance apart
-        let point1 = {x: center.x, y: center.y, z: 0};
-        let point2 = {x: center.x + radius, y: center.y, z: 0};
-        // Project the points to the screen
-        // Calculate the distance between the projected points
-        let dx = point2.x - point1.x;
-        let dy = point2.y - point1.y;
-        let projectedRadius = Math.sqrt(dx * dx + dy * dy);
-
-        return projectedRadius;
-    }
+    const center = projectToScreen(arc.center);
+    const rad = projectRadToScreen(arc.center, arc.radius);
     Scene.context.beginPath();
-    Scene.context.arc(arc.center.x, arc.center.y, Math.abs(projectRadiusToScreen(arc.center, arc.radius)), arc.startAngle, arc.endAngle, false);
+    Scene.context.arc(center.x, center.y, rad, arc.startAngle, arc.endAngle, false);
     Scene.context.stroke();
     Scene.context.closePath();
 }
@@ -212,10 +202,7 @@ function renderEntities() {
                 break;
             }
             case("ARC"): {
-                drawArcFromBulge(
-                    projectToScreen(curEnt.vertices[0]), 
-                    projectToScreen(curEnt.vertices[1]), 
-                    curEnt.vertices[0].bulge);
+                drawArc(curEnt.vertices[0])
                 break;
             }
             case("BARC"): {
@@ -260,12 +247,12 @@ function projectToScreen(point) {
         point.y - camera.pos.y,
         point.z - camera.pos.z
     );
-    const rotatedPoint = rotatePoint(translatedPoint, camera.rotation);
+    translatedPoint.rotate(camera.rotation);
     const distanceRatio = 1 / Math.tan(camera.fov / 2);
     const aspectRatio = screenW / screenH;
     const projecedPoint = new vec2d(
-        rotatedPoint.x * distanceRatio / rotatedPoint.z,
-        rotatedPoint.y * distanceRatio * aspectRatio / rotatedPoint.z
+        translatedPoint.x * distanceRatio / translatedPoint.z,
+        translatedPoint.y * distanceRatio * aspectRatio / translatedPoint.z
     );
     
     const pointToScreen = new vec2d(
@@ -275,5 +262,20 @@ function projectToScreen(point) {
     return pointToScreen;
 }
 
+function projectRadToScreen(center, rad) {
+    // Create two points that are `radius` distance apart in world space
+    let point1 = new vec3d(center.x, center.y, center.z);
+    let point2 = new vec3d(center.x + rad, center.y, center.z);
+
+    // Project the points to screen space
+    point1 = projectToScreen(point1);
+    point2 = projectToScreen(point2);
+
+    // Calculate the distance between the projected points
+    const dx = point2.x - point1.x;
+    const dy = point2.y - point1.y;
+
+    return Math.sqrt(dx * dx + dy * dy);
+}
 
 export { initScene, drawPoint, drawArc, drawArcFromBulge, drawLine, drawGrid, addEntityToScene, renderEntities, wipeEntities, setCameraPos, moveCamera, getCameraPos }

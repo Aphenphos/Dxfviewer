@@ -1,6 +1,6 @@
 import { DxfParser } from 'dxf-parser';
 import { addEntityToScene, moveCamera, setCameraPos, wipeEntities } from "./render";
-import { arcToArcWithBulge, normalize2DCoordinatesToScreen, scaleVert, last, shape, outFile, normalize_array, entity2D, entity3D, normalizeCoordinates2D } from './utils';
+import { arcToArcWithBulge, normalize2DCoordinatesToScreen, scaleVert, last, shape, outFile, bulgeToArc, normalizeRadiusToScreen, scaleRad, entity2D, entity3D } from './utils';
 import { downloadFile } from './output';
 
 
@@ -14,8 +14,10 @@ function handleDXF(fileString, is2D = true) {
     const parser = new DxfParser();
     try {
         const dxf = parser.parseSync(fileString);
+        console.log(dxf.entities);
         const entities = dxf.entities;
-        parseEntities(entities);
+        const result = parseEntities(entities);
+        console.log(entities)
         // findShapes(entities);
         //Write a real way to extract into json and make it robust for later.
         //draw size for each shape
@@ -45,17 +47,18 @@ function handleDXF(fileString, is2D = true) {
                 case ("ARC"): {
                     //converted from {rad, startAngle, endAngle, centerPoint} -> [{x,y,bulge}, {x,y}];
                     //this mimics the shape of the polyline bulge and is easier to work with later on.
-                    const arcConverted = arcToArcWithBulge(ent);
-                    const verts = [];
-                    for (let v of arcConverted) {
-                        let newV = normalize2DCoordinatesToScreen(v);
-                        newV = scaleVert(newV);
-                        newV.bulge = v.bulge;
-                        verts.push(newV);
-                    }
+                    let newV = normalize2DCoordinatesToScreen(ent.center);
+                    newV = scaleVert(newV);
+                    let rad = normalizeRadiusToScreen(ent.radius);
+                    rad = scaleRad(rad);
                     addEntityToScene({
                         type: ent.type,
-                        vertices: verts
+                        vertices: [{
+                            startAngle: ent.startAngle,
+                            endAngle: ent.endAngle,
+                            radius: rad,
+                            center: newV
+                        }]
                     });
                     break;
                 }
@@ -100,7 +103,7 @@ function handleDXF(fileString, is2D = true) {
     } catch(err) {
         return console.error(err.stack);
     }
-    setCameraPos(0,0,0);
+    setCameraPos(0,0,-2);
     moveCamera(undefined,undefined,undefined);
 }
 
@@ -117,11 +120,8 @@ function findShapes(entities) {
 
     function findNextEnt() {
         for (let j = 0; j < entCount; j++) {
-            if (entities[j].type === "DIMENSION") {
+            if (sedEnts.has(j) || entities[j].type === "DIMENSION") {
                 continue; 
-            }
-            if (usedEnts.has(j)) {
-                continue;
             }
             if (entities[j].type === "CIRCLE" || entities[j].shape === true) {
                 usedEnts.add(j);
@@ -195,23 +195,24 @@ function findShapes(entities) {
 }
 
 function parseEntities(ents) {
-    console.log(ents);
-    const parsedEnts = [];
     for (let i=0; i < ents.length; i++) {
         const currentEnt = ents[i];
+        console.log(currentEnt);
         let parsed;
         switch(currentEnt.type) {
             case ("LWPOLYLINE"): {
                 if (currentEnt.elevation) {
-                    parsed = parse3DPolyline(currentEnt);
+                    parsed = parse3DLWPolyline(currentEnt);
                 } else {
-                    parsed = parse2DPolyLine(currentEnt);
+                    parsed = parse2DLWPolyLine(currentEnt);
                 }
-                parsedEnts.push(parsed);
+                ents[i] = parsed;
                 break;
             }
             case("POLYLINE"): {
-                parsePolyline(currentEnt)
+                parsed = parsePolyline(currentEnt)
+                ents[i] = parsed;
+                break;
             }
             case ("LINE"): {
                 if (currentEnt.vertices[0].z) {
@@ -219,17 +220,16 @@ function parseEntities(ents) {
                 } else {
                     parsed = parse2DLine(currentEnt);
                 }
-                parsedEnts.push(parsed);
+                ents[i] = parsed;
                 break;
             }
             case("ARC"): {
-                console.log(currentEnt);
                 if (currentEnt.center.z != 0) {
                     parsed = parse3DArc(currentEnt);
                 } else {
                     parsed = parse2DArc(currentEnt);
                 }
-                parsedEnts.push(parsed);
+                ents[i] = parsed;
                 break;
             }
             case("CIRCLE"): {
@@ -240,31 +240,51 @@ function parseEntities(ents) {
     }
 }
 
-function parse2DPolyLine(polyline) {
-
-}
-
-function parse3DPolyline(polyline) {
-
-}
-
-function parse2DLine(line) {
-
-}
-function parse3DLine(line) {
-
-}
-
-function parse2DArc(arc) {
-
-}
-function parse3DArc(arc) {
-
+function parse2DLWPolyLine(polyline) {
+    const newPolyline = []
+    for (let i = 0; i < polyline.vertices.length; i++) {
+        const v1 = polyline.vertices[i];
+        let v2 = polyline.vertices[i+1];
+        if (i === polyline.vertices.length) {
+            if (polyline.shape === true) {
+                v2 = polyline.vertices[0];
+            } else {
+                return new entity2D("LWPOLYLINE",newPolyline);
+            }
+        } 
+        if (v1.bulge) {
+            const newArc = bulgeToArc(v1, v2);
+            console.log(newArc);
+            newPolyline.push(newArc);
+        } else {
+            const newLine = new entity2D("LINE", [v1,v2])
+            newPolyline.push(newLine);
+        }
+    }
+    return new entity2D("LWPOLYLINE", newPolyline);
 }
 
 function parsePolyline(polyline) {
-
+    for (let i = 0; i < polyline.vertices.length; i++) {
+        
+    }
 }
+
+function parse2DLine(line) {
+    return new entity2D("LINE", line.vertices[0], line.vertices[1]);
+}
+function parse3DLine(line) {
+    return new entity3D("LINE", line.vertices[0], line.vertices[1]);
+}
+
+function parse2DArc(arc) {
+    return new entity2D("ARC", [arc.center], {
+        startAngle: arc.startAngle,
+        endAngle: arc.endAngle,
+        radius: arc.radius
+    });
+}
+
 // let toShapes = [];
 // let used = new Set();
 // let shape = [null];
