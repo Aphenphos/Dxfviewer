@@ -265,16 +265,28 @@ function parse2DLWPolyLine(polyline) {
 }
 
 function parsePolyline(polyline) {
-    for (let i = 0; i < polyline.vertices.length; i++) {
-        
+    const newPolyline = [];
+    for (let i = 0; i < polyline.vertices.length - 1; i++) {
+        const v1 = polyline.vertices[i];
+        let v2 = polyline.vertices[i+1];
+        if (i === polyline.vertices.length) {
+            if (polyline.shape === true) {
+                v2 = polyline.vertices[0];
+            } else {
+                break
+            }
+        } 
+        const newLine = new entity3D("LINE", [v1,v2])
+        newPolyline.push(newLine);
     }
+    return new entity3D("POLYLINE",newPolyline);
 }
 
 function parse2DLine(line) {
-    return new entity2D("LINE", line.vertices[0], line.vertices[1]);
+    return new entity2D("LINE", line.vertices[0], line.vertices[1])
 }
 function parse3DLine(line) {
-    return new entity3D("LINE", line.vertices[0], line.vertices[1]);
+    return new entity3D("LINE", line.vertices[0], line.vertices[1])
 }
 
 function parse2DArc(arc) {
@@ -282,8 +294,21 @@ function parse2DArc(arc) {
         startAngle: arc.startAngle,
         endAngle: arc.endAngle,
         radius: arc.radius
-    });
+    })
 }
+
+function parse3DArc(arc) {
+    return new entity3D(
+        "ARC",
+        [arc.center],
+        new vec3d(arc.extrusionDirectionX, arc.extrustionDirectionY, arc.extrusionDirectionZ), {
+            startAngle: arc.startAngle,
+            endAngle: arc.endAngle,
+            radius: arc.radius
+        }
+    ).normalizeToWorld()
+}
+
 
 // let toShapes = [];
 // let used = new Set();

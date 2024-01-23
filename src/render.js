@@ -222,7 +222,7 @@ function renderEntities() {
         }
     }
 }
-
+  
 window.addEventListener("resize", resizeCanvas, false);
 //will need to add function to re render all entities.
 
