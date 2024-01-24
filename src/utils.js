@@ -301,6 +301,7 @@ class shape {
             }
         }
     }
+    
     normalizeToSelf() {
         if (this.boundingBox === null) {
             this.findBoundingBox();
