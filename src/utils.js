@@ -134,20 +134,7 @@ function scaleVerts(verts) {
     return newVerts;    
 }
 
-function normalizeCoordinates2D(originalX, originalY, minX, maxX, minY, maxY) {
-    let normalizedX = 2 * (originalX - minX) / (maxX - minX) - 1;
-    let normalizedY = 2 * (originalY - minY) / (maxY - minY) - 1;
-    const result = new vec3d(normalizedX, normalizedY, 1)
-    return result;
-}
-
-function normalize2DCoordinatesToScreen(point) {
-    let normalizedX = 2 * (point.x - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
-    let normalizedY = 2 * (point.y - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1 ;
-    return new vec3d(normalizedX, normalizedY,1);
-}
-
-function normalizeRadiusToScreen(rad) {
+function normalizeRadiusToWorld(rad) {
     return 2 * (rad - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
 }
 // Function to un-normalize 2D coordinates
@@ -214,6 +201,11 @@ class vec3d {
 
         this.x = dx; this.y = dy; this.z = dz;
     }
+    normalizeToWorld() {
+        this.x = 2 * (this.x - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
+        this.y = 2 * (this.y - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
+        this.z = 2 * (this.z - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
+    }
 }
 
 class entity2D {
@@ -223,14 +215,46 @@ class entity2D {
         this.vertices = vertices;
         this.attribs = attribs;
     }
+    first() {
+        return this.vertices[0];
+    }
+    last() {
+        return this.vertices[length-1];
+    }
+    normalizeToWorld() {
+        for (let i=0; i < this.vertices.length; i++) {
+            this.vertices[i].normalizeToWorld();
+        }
+        if (this.attribs.radius) {
+            this.attribs.radius = normalizeRadiusToWorld(this.attribs.radius);
+        }
+    }
 }
 
 class entity3D {
-    type; vertices; extrusionDirection;
-    constructor(type=null, vertices=[], extrusionDirection=null) {
+    type; vertices; attribs; extrusionDirection;
+    constructor(type=null, vertices=[], attribs = {}, extrusionDirection=null) {
         this.type = type; 
         this.vertices = vertices; 
+        this.attribs = attribs;
         this.extrusionDirection = extrusionDirection;
+    }
+    first() {
+        return this.vertices[0];
+    }
+    last() {
+        return this.vertices[length-1];
+    }
+    normalizeToWorld() {
+        for (let i=0; i < this.vertices.length; i++) {
+            this.vertices[i].normalizeToWorld();
+        }
+        if (this.attribs.radius) {
+            this.attribs.radius = normalizeRadiusToWorld(this.attribs.radius);
+        }
+        if (this.extrusionDirection) {
+            this.extrusionDirection.normalizeToWorld();  
+        }
     }
 }
 
@@ -295,23 +319,58 @@ class shape {
 
 class camera {
     pos; rotation; fov; near; far;
-    constructor(pos=new vec3d(), rotation=new vec3d(), fov=0, near=0, far=0) {
+    constructor(pos=new vec3d(0,0,-1), rotation=new vec3d(0,0,0), fov=45, near=.01, far=1000) {
         this.pos = pos; this.rotation = rotation; this.fov = fov; this.near = near; this.far = far;
+    }
+    setPos(x,y,z) {
+        this.pos.x = x;
+        this.pos.y = y;
+        this.pos.z = z; 
+    }
+    translate(x,y,z) {
+        this.pos.x +=x;
+        this.pos.y +=y;
+        this.pos.z +=z
+    }
+    getPos() {
+        return this.pos;
     }
 }
 //0 for 2d  | 1 for 3d
-class renderer { 
-    camera; fps; mode;
-    constructor(c = new camera(), fps=10, mode=0) {
-        this.camera = c; this.fps = fps; this.mode = mode;
+class Renderer { 
+    camera; canvas; context;
+    constructor(c = new camera(), canvas = null, context = null) {
+        this.camera = c;
+        this.canvas = canvas;
+        this.context = context;
+    }
+    init() {
+        this.canvas = document.getElementById("drawing-canvas");
+        this.context = this.canvas.getContext("2d");
+    }
+    drawLine(p1, p2) {
+        const p1Proj = p1.projectToScreen();
     }
 }
 
 class scene {
-    canvas; context; renderer; entities;
-    constructor(canvas = null, context = null, renderer = null, entities = []) {
-        this.canvas = canvas; this.context = context; this.renderer = renderer; this.entities = entities;
+    renderer; entities;
+    constructor(renderer = new Renderer(), entities = []) {
+        this.renderer = renderer; this.entities = entities;
     }
+    init() {
+        this.renderer.init();
+    }
+    setEntities(ents) {
+        this.entities = ents;
+    }
+    addEntity(ent) {
+        this.entities.push(ent);
+    }
+    wipeEntities() {
+        this.entities = [];
+    }
+
 }
 
 class mouseInput {
@@ -332,5 +391,5 @@ class outFile {
 export { renderer, camera, vec2d, shape, entity2D, entity3D,
          vec3d, scene, mouseInput, outFile, 
          clamp, degToRad, sleep, last, bulgeToArc, normalizeRadiusToScreen, scaleRad,
-         normalizeCoordinates2D, normalize2DCoordinatesToScreen,  normalize_array, unNormalizeCoordinates2D, 
+         normalizeCoordinates2D, normalize_array, unNormalizeCoordinates2D, 
          arcToArcWithBulge, scaleVerts, scaleVert, WorldSpaceSize, scaleFactor }

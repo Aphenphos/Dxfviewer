@@ -4,26 +4,6 @@ import chars from "./raw/charsNormalised.json" assert {type: "json"};
 
 const Scene = new scene();
 
-function initRenderer(fov, near, far, rotation) {
-    const cam = new camera(new vec3d(0,0,0), rotation, fov, near, far);
-    return new renderer(cam);
-}
-
-function setCameraPos(x, y, z) {
-    Scene.renderer.camera.pos.x = x;
-    Scene.renderer.camera.pos.y = y;
-    Scene.renderer.camera.pos.z = z;
-    updateCanvas();  
-}
-function getCameraPos() {
-    return Scene.renderer.camera.pos;
-}
-function moveCamera(deltaX = 0, deltaY = 0, deltaZ = 0) {
-    setCameraPos(Scene.renderer.camera.pos.x + deltaX,
-                 Scene.renderer.camera.pos.y + deltaY,
-                 Scene.renderer.camera.pos.z + deltaZ)
-}
-
 function initScene() {
     const drawingCanvas = document.getElementById("drawing-canvas");
     const ctx = drawingCanvas.getContext("2d");
@@ -167,32 +147,18 @@ function renderEntities() {
     drawString(["A","B",'C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','1','2','3','4','5','6','7','8','9','0'],0,1);
     // drawString(["I"],0,30);
 
-    if (gridEnabled) {
-        drawGrid();
-    }
     for (let i = 0; i < Scene.entities.length; i++) {
         let curEnt = Scene.entities[i];
         switch (curEnt.type) {
             case("LWPOLYLINE"): {
                 for (let j = 0; j < curEnt.vertices.length; j++) {
                     let k = j+1
-                    //ugly but Worlds for now
-                    if (curEnt.vertices[j].bulge) {
-                        if (k >= curEnt.vertices.length) {
-                            k=0
-                        }
-                        drawArcFromBulge(
-                            projectToScreen(curEnt.vertices[j]), 
-                            projectToScreen(curEnt.vertices[k]), 
-                            curEnt.vertices[j].bulge);
-                        } else {
-                            if (k >= curEnt.vertices.length) {
-                                break;
-                            }
-                            drawLine(
-                            projectToScreen(curEnt.vertices[j]), 
-                            projectToScreen(curEnt.vertices[k]));
-                        }
+                    if (k >= curEnt.vertices.length) {
+                        break;
+                    }
+                    drawLine(
+                    projectToScreen(curEnt.vertices[j]), 
+                    projectToScreen(curEnt.vertices[k]));
                     }
                 break;
             }
