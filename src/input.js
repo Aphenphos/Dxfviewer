@@ -1,4 +1,3 @@
-import { getCameraPos, moveCamera, setCameraPos } from "./render";
 import { mouseInput, clamp } from "./utils";
 
 let MouseInputs;

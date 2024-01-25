@@ -47,14 +47,23 @@ function bulgeToArc(p1, p2) {
         (p1.x + p2.x) / 2 + rad * Math.cos(angleCenter),
         (p1.y + p2.y) / 2 + rad * Math.sin(angleCenter)
     );
-    const startAngle = Math.atan2(p1.y - center.y, p2.x - center.x) * (Math.PI / 180);
-    const endAngle = Math.atan2(p2.y - center.y, p2.x - center.x) * (Math.PI / 180);
+    let startAngle = Math.atan2(p1.y - center.y, p1.x - center.x);
+    let endAngle = Math.atan2(p2.y - center.y, p2.x - center.x);
+
+    if (startAngle < 0) startAngle += 2 * Math.PI;
+    if (endAngle < 0) endAngle += 2 * Math.PI;
+    
+    if (p1.bulge < 0) {
+        let temp = startAngle;
+        startAngle = endAngle;
+        endAngle = temp;
+    }
     const attribs = {
         startAngle,
         endAngle,
         radius: rad
     }
-    return new entity2D("ARC", center, attribs);
+    return new entity2D("ARC", [center], attribs);
 }
 
 function arcToArcWithBulge(arc) {
@@ -137,13 +146,6 @@ function scaleVerts(verts) {
 function normalizeRadiusToWorld(rad) {
     return 2 * (rad - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
 }
-// Function to un-normalize 2D coordinates
-function unNormalizeCoordinates2D(normalizedX, normalizedY, minX, maxX, minY, maxY) {
-    let originalX = normalizedX * (maxX - minX) + minX;
-    let originalY = normalizedY * (maxY - minY) + minY;
-    return new vec3d(originalX, originalY, 0);
-}
-
 
 function degToRad(deg) {
     return deg * Math.PI / 180;
@@ -176,6 +178,25 @@ class vec2d {
         this.x = 2 * (this.x - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
         this.y = 2 * (this.y - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
     }
+    projectToScreen(camera, screenW, screenH) {
+        const pointTranslated = new vec3d(
+            this.x - camera.pos.x,
+            this.y - camera.pos.y,
+            this.z - camera.pos.z
+        );
+        pointTranslated.rotate(camera.rotation);
+        const distanceRatio = 1 / Math.tan(camera.fov / 2);
+        const aspectRatio = screenW / screenH;
+        const pointProjected = new vec2d(
+            pointTranslated.x * distanceRatio / pointTranslated.z,
+            pointTranslated.y * distanceRatio * aspectRatio / pointTranslated.z
+        )
+        const pointOnScreen = new vec2d(
+            (pointProjected.x + 1) * .5 * screenW,
+            (pointProjected.y + 1) * .5 * screenH
+            );
+        return pointOnScreen;
+    }
 }
 
 class vec3d {
@@ -205,6 +226,25 @@ class vec3d {
         this.x = 2 * (this.x - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
         this.y = 2 * (this.y - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
         this.z = 2 * (this.z - (-WorldSpaceSize)) / (WorldSpaceSize - (-WorldSpaceSize)) - 1;
+    }
+    projectToScreen(camera, screenW, screenH) {
+        const pointTranslated = new vec3d(
+            this.x - camera.pos.x,
+            this.y - camera.pos.y,
+            this.z - camera.pos.z
+        );
+        pointTranslated.rotate(camera.rotation);
+        const distanceRatio = 1 / Math.tan(camera.fov / 2);
+        const aspectRatio = screenW / screenH;
+        const pointProjected = new vec2d(
+            pointTranslated.x * distanceRatio / pointTranslated.z,
+            pointTranslated.y * distanceRatio * aspectRatio / pointTranslated.z
+        )
+        const pointOnScreen = new vec2d(
+            (pointProjected.x + 1) * .5 * screenW,
+            (pointProjected.y + 1) * .5 * screenH
+        );
+        return pointOnScreen;
     }
 }
 
@@ -320,7 +360,7 @@ class shape {
 
 class camera {
     pos; rotation; fov; near; far;
-    constructor(pos=new vec3d(0,0,-1), rotation=new vec3d(0,0,0), fov=45, near=.01, far=1000) {
+    constructor(pos=new vec3d(0,0,.98), rotation=new vec3d(0,0,0), fov=45, near=.01, far=1000) {
         this.pos = pos; this.rotation = rotation; this.fov = fov; this.near = near; this.far = far;
     }
     setPos(x,y,z) {
@@ -349,8 +389,36 @@ class Renderer {
         this.canvas = document.getElementById("drawing-canvas");
         this.context = this.canvas.getContext("2d");
     }
+    update() {
+        this.canvas.width = this.canvas.width;
+        this.canvas.height = this.canvas.height;
+    }
     drawLine(p1, p2) {
-        const p1Proj = p1.projectToScreen();
+        const p1OnScreen = p1.projectToScreen(this.camera, this.canvas.width, this.canvas.height);
+        const p2OnScreen = p2.projectToScreen(this.camera, this.canvas.width, this.canvas.height);
+        this.context.beginPath();
+        this.context.moveTo(p1OnScreen.x, p1OnScreen.y);
+        this.context.lineTo(p2OnScreen.x, p2OnScreen.y);
+        this.context.stroke();
+        this.context.closePath();
+    }
+    drawArc(arc) {
+        const projectRadiusToScreen = () => {
+            console.log()
+            let p1 = new vec3d(arc.vertices[0].x, arc.vertices[0].y, arc.vertices[0].z);
+            let p2 = new vec3d(arc.vertices[0].x + arc.attribs.radius, arc.vertices[0].y, arc.vertices[0].z);
+            p1 = p1.projectToScreen(this.camera, this.canvas.width, this.canvas.height);
+            p2 = p2.projectToScreen(this.camera, this.canvas.width, this.canvas.height);
+            const dx = p2.x - p1.x; 
+            const dy = p2.y - p1.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        const center =  arc.vertices[0].projectToScreen(this.camera, this.canvas.width, this.canvas.height);
+        const rad = projectRadiusToScreen(arc.attribs.radius);
+        this.context.beginPath();
+        this.context.arc(center.x, center.y, Math.abs(rad), arc.attribs.startAngle, arc.attribs.endAngle, false);
+        this.context.stroke();
+        this.context.closePath();
     }
 }
 
@@ -371,7 +439,45 @@ class scene {
     wipeEntities() {
         this.entities = [];
     }
-
+    update(canvasChange) {
+        if (canvasChange) {
+            this.renderer.canvas.width = window.innerWidth * .9;
+            this.renderer.canvas.height = window.innerHeight * .9;
+        }
+        this.renderer.update();
+        this.render();
+    }
+    render() {
+        for (let i=0; i < this.entities.length; i++) {
+            const curEnt = this.entities[i];
+            switch (curEnt.type) {
+                case("LWPOLYLINE"): {
+                    for (let j=0; j < curEnt.vertices.length; j++) {
+                        const e = curEnt.vertices[j];
+                        switch (e.type) {
+                            case ("LINE"): {
+                                this.renderer.drawLine(e.vertices[0],e.vertices[1]);
+                                break;
+                            }
+                            case ("ARC"): {
+                                this.renderer.drawArc(e);
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                }
+                case ("LINE"): {
+                    this.renderer.drawLine(curEnt.vertices[0], curEnt.vertices[1]);
+                    break;
+                }
+                case ("ARC"): {
+                    this.renderer.drawArc(curEnt);
+                    break;
+                }
+            }
+        }
+    }
 }
 
 class mouseInput {
@@ -389,8 +495,8 @@ class outFile {
     }
 }
 
-export { renderer, camera, vec2d, shape, entity2D, entity3D,
+export { Renderer, camera, vec2d, shape, entity2D, entity3D,
          vec3d, scene, mouseInput, outFile, 
-         clamp, degToRad, sleep, last, bulgeToArc, normalizeRadiusToScreen, scaleRad,
-         normalizeCoordinates2D, normalize_array, unNormalizeCoordinates2D, 
+         clamp, degToRad, sleep, last, bulgeToArc, scaleRad,
+          normalize_array,
          arcToArcWithBulge, scaleVerts, scaleVert, WorldSpaceSize, scaleFactor }
