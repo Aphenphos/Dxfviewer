@@ -14,11 +14,6 @@ function clamp(val, min, max) {
 }
 
 function bulgeToArc(p1, p2) {
-  if (p1.bulge < 0) {
-    const temp = p1;
-    p1 = p2;
-    p2 = temp;
-  }
   function distance(p1, p2) {
     return Math.hypot(p2.x - p1.x, p2.y - p1.y);
   }
@@ -32,52 +27,22 @@ function bulgeToArc(p1, p2) {
       point.y + distance * Math.sin(angle)
     );
   }
-
   const a = 2 * Math.atan(p1.bulge);
-  const r = distance(p1, p2) / (2 * Math.sin(a));
-  const c = polar(p1, angle(p1, p2) - Math.PI / 2 + a, r);
+  const r = distance(p1,p2) / (2 * Math.sin(a));
+  const c = polar(p1, Math.PI / 2 - a + angle(p1,p2), r);
   let startAngle, endAngle;
   if (p1.bulge < 0) {
-    startAngle = angle(c, p2);
-    endAngle = angle(c, p1);
+    startAngle = angle(c,p2);
+    endAngle = angle(c,p1);
   } else {
-    startAngle = angle(c, p1);
-    endAngle = angle(c, p2);
+    startAngle = angle(c,p1);
+    endAngle = angle(c,p2);
   }
-
   return new entity2D("ARC", [c], {
     startAngle,
     endAngle,
     radius: Math.abs(r),
   });
-}
-
-function arcToArcWithBulge(arc) {
-  const startAngle = arc.startAngle;
-  let endAngle = arc.endAngle;
-  if (startAngle > endAngle) {
-    //if start angle is greater than end this will draw the arc
-    //everywhere except where we want it | Add full circle of radians to correct it
-    endAngle += 2 * Math.PI;
-  }
-  const startX = arc.center.x + Math.abs(arc.radius) * Math.cos(startAngle);
-  const startY = arc.center.y + Math.abs(arc.radius) * Math.sin(startAngle);
-  const endX = arc.center.x + Math.abs(arc.radius) * Math.cos(endAngle);
-  const endY = arc.center.y + Math.abs(arc.radius) * Math.sin(endAngle);
-  const bulge = Math.tan((endAngle - startAngle) * 0.25);
-  // parser deals with bulge arcs by using sequential vertices
-  // this uses the first vertice bulge, therefore I only store it once.
-  return [
-    {
-      x: startX,
-      y: startY,
-      bulge: bulge,
-    },
-    {
-      x: endX,
-      y: endY,
-    },
-  ];
 }
 //create a function which scales to something universal?
 function scaleVert(vert) {
@@ -380,18 +345,21 @@ class entity3D {
 // }
 
 class camera {
+  update;
   pos;
   rotation;
   fov;
   near;
   far;
   constructor(
+    updateFunc,
     pos = new vec3d(0, 0, 0.98),
     rotation = new vec3d(0, 0, 0),
     fov = 45,
     near = 0.01,
     far = 1000
   ) {
+    this.update = updateFunc;
     this.pos = pos;
     this.rotation = rotation;
     this.fov = fov;
@@ -402,11 +370,13 @@ class camera {
     this.pos.x = x;
     this.pos.y = y;
     this.pos.z = z;
+    this.update()
   }
   translate(x, y, z) {
     this.pos.x += x;
     this.pos.y += y;
     this.pos.z += z;
+    this.update();
   }
   getPos() {
     return this.pos;
@@ -417,8 +387,8 @@ class Renderer {
   camera;
   canvas;
   context;
-  constructor(c = new camera(), canvas = null, context = null) {
-    this.camera = c;
+  constructor(updateFunc, canvas = null, context = null) {
+    this.camera = new camera(updateFunc);
     this.canvas = canvas;
     this.context = context;
   }
@@ -495,13 +465,17 @@ class Renderer {
 
 class scene {
   renderer;
+  mouseInput;
   entities;
-  constructor(renderer = new Renderer(), entities = []) {
+  constructor(renderer = new Renderer(() => this.update(false)), entities = []) {
     this.renderer = renderer;
     this.entities = entities;
+    this.mouseInput = new MouseInput(renderer.camera);
   }
   init() {
     this.renderer.init();
+    this.mouseInput.init();
+    this.renderer.camera.update = () => {this.update(false)}
   }
   setEntities(ents) {
     this.entities = ents;
@@ -553,13 +527,54 @@ class scene {
   }
 }
 
-class mouseInput {
+class MouseInput {
   active;
   initialPosition;
-  constructor() {
+  cam;
+  constructor(cameraRef) {
     this.active = false;
-    this.initialPosition = new vec2d();
+    this.initialPosition = new vec2d(0,0);
+    this.cam = cameraRef;
   }
+  init() {
+    document.addEventListener("mousedown", this.mouseDown.bind(this))
+    document.addEventListener("mouseup", this.mouseUp.bind(this))
+    document.addEventListener("mousemove", this.mouseMove.bind(this));
+    document.addEventListener("wheel", this.scroll.bind(this))
+  }
+  scroll(e) {
+      if (e.deltaY > 0) {
+        this.scrollDown(e);
+    } else {
+        this.scrollUp();
+    }
+  }
+  mouseDown(down) {
+    this.active = true;
+    this.initialPosition.x = down.clientX; this.initialPosition.y = down.clientY;
+  }
+  mouseUp() {
+    this.active = false;
+    this.initialPosition.x = 0; this.initialPosition.y = 0;
+  }
+  mouseMove(e) {
+    if (this.active === true) {
+      let deltaX = (this.initialPosition.x - e.clientX);
+      let deltaY = (this.initialPosition.y - e.clientY);
+      const scalar = clamp(.0001 / (this.cam.pos.z), .00001, .005);
+      this.cam.translate(deltaX * scalar, deltaY * scalar, 0);
+      this.initialPosition.x = e.clientX;
+      this.initialPosition.y = e.clientY;
+      setTimeout(null, 20);
+    }
+  }
+  scrollDown() {
+    this.cam.translate(0,0,-.01);
+  }
+  scrollUp() {
+    this.cam.translate(0,0,.01);
+  }
+
 }
 
 class outFile {
@@ -581,7 +596,7 @@ export {
   entity3D,
   vec3d,
   scene,
-  mouseInput,
+  MouseInput,
   outFile,
   clamp,
   degToRad,
@@ -589,7 +604,6 @@ export {
   last,
   bulgeToArc,
   scaleRad,
-  arcToArcWithBulge,
   scaleVerts,
   scaleVert,
   WorldSpaceSize,

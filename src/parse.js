@@ -14,7 +14,6 @@ function handleDXF(fileString, is2D = true) {
     const dxf = parser.parseSync(fileString);
     const entities = dxf.entities;
     const parsed = parseEntities(entities);
-    console.log(parsed);
     addEntitiesToScene(parsed);
 }
 
@@ -66,7 +65,8 @@ function parse2DLWPolyLine(polyline) {
     for (let i=0; i < polyline.vertices.length; i++) {
         const v1 = polyline.vertices[i];
         let v2 = polyline.vertices[i+1];
-        if (i === polyline.vertices.length) {
+        if (i === polyline.vertices.length - 1) {
+            console.log(polyline);
             if (polyline.shape === true) {
                 v2 = polyline.vertices[0];
             } else {

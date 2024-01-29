@@ -1,9 +1,7 @@
-import { initInputs } from "./src/input";
 import { handleDXF } from "./src/parse";
 import { initScene } from "./src/render";
 
 initScene();
-initInputs();
 const inFile = document.getElementById("file-in");
 inFile.addEventListener("change", handleFileChange, false);
 

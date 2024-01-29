@@ -16,6 +16,7 @@ function addEntitiesToScene(ents) {
     Scene.update(false);
 }
 
+
 // function drawString(string, pos, scale) {
 //     let curOffset = new vec2d(0,0);
 //     for (let i = 0; i < string.length; i++) {
