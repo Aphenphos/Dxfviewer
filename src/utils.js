@@ -45,57 +45,50 @@ function bulgeToArc(p1, p2) {
   });
 }
 //create a function which scales to something universal?
-function scaleVert(vert) {
-  return {
-    x: vert.x * scaleFactor,
-    y: vert.y * scaleFactor,
-    z: 1,
-  };
-}
 
 function scaleRad(rad) {
   return rad * scaleFactor;
 }
-function scaleVerts(verts) {
-  let totalX = 0;
-  let totalY = 0;
-  const newVerts = [];
-  for (let i = 0; i < verts.length; i++) {
-    const v = verts[i];
-    if (verts.center) {
-      totalX += verts.center.x;
-      totalY += verts.center.y;
-    } else {
-      totalX += v.x;
-      totalY += v.y;
-    }
-  }
+// function scaleVerts(verts) {
+//   let totalX = 0;
+//   let totalY = 0;
+//   const newVerts = [];
+//   for (let i = 0; i < verts.length; i++) {
+//     const v = verts[i];
+//     if (verts.center) {
+//       totalX += verts.center.x;
+//       totalY += verts.center.y;
+//     } else {
+//       totalX += v.x;
+//       totalY += v.y;
+//     }
+//   }
 
-  const shapeCenter = new vec2d(totalX / verts.length, totalY / verts.length);
+//   const shapeCenter = new vec2d(totalX / verts.length, totalY / verts.length);
 
-  for (let i = 0; i < verts.length; i++) {
-    let curVert = verts[i];
-    let translatedVert = new vec2d(
-      curVert.x - shapeCenter.x,
-      curVert.y - shapeCenter.y
-    );
+//   for (let i = 0; i < verts.length; i++) {
+//     let curVert = verts[i];
+//     let translatedVert = new vec2d(
+//       curVert.x - shapeCenter.x,
+//       curVert.y - shapeCenter.y
+//     );
 
-    let scaledVert = new vec2d(
-      translatedVert.x * scaleFactor,
-      translatedVert.y * scaleFactor
-    );
+//     let scaledVert = new vec2d(
+//       translatedVert.x * scaleFactor,
+//       translatedVert.y * scaleFactor
+//     );
 
-    let retranslatedVert = new vec2d(
-      scaledVert.x + shapeCenter.x,
-      scaledVert.y + shapeCenter.y
-    );
-    if (verts[i].bulge) {
-      retranslatedVert.bulge = verts[i].bulge;
-    }
-    newVerts.push(retranslatedVert);
-  }
-  return newVerts;
-}
+//     let retranslatedVert = new vec2d(
+//       scaledVert.x + shapeCenter.x,
+//       scaledVert.y + shapeCenter.y
+//     );
+//     if (verts[i].bulge) {
+//       retranslatedVert.bulge = verts[i].bulge;
+//     }
+//     newVerts.push(retranslatedVert);
+//   }
+//   return newVerts;
+// }
 
 function normalizeRadiusToWorld(rad) {
   return (2 * (rad - -WorldSpaceSize)) / (WorldSpaceSize - -WorldSpaceSize) - 1;
@@ -222,6 +215,16 @@ class vec3d {
     );
     return pointOnScreen;
   }
+  magnitude() {
+    return Math.sqrt(this.x**2 + this.y**2 + this.z**2);
+  }
+  getTranslated(translation) {
+    return new vec3d(
+      this.x + translation.x,
+      this.y + translation.y,
+      this.z + translation.z
+    )
+  }
 }
 
 class entity2D {
@@ -253,17 +256,15 @@ class entity3D {
   type;
   vertices;
   attribs;
-  extrusionDirection;
+
   constructor(
     type = null,
     vertices = [],
     attribs = {},
-    extrusionDirection = null
   ) {
     this.type = type;
     this.vertices = vertices;
     this.attribs = attribs;
-    this.extrusionDirection = extrusionDirection;
   }
   first() {
     return this.vertices[0];
@@ -278,8 +279,8 @@ class entity3D {
     if (this.attribs.radius) {
       this.attribs.radius = normalizeRadiusToWorld(this.attribs.radius);
     }
-    if (this.extrusionDirection) {
-      this.extrusionDirection.normalizeToWorld();
+    if (this.attribs.extrusionDirection) {
+      this.attribs.extrusionDirection.normalizeToWorld();
     }
   }
 }
@@ -463,34 +464,38 @@ class Scene {
     this.render();
   }
   static render() {
-    for (let i = 0; i < this.entities.length; i++) {
-      const curEnt = this.entities[i];
-      switch (curEnt.type) {
+    function renderEnt(e) {
+      switch (e.type) {
         case "LWPOLYLINE": {
-          for (let j = 0; j < curEnt.vertices.length; j++) {
-            const e = curEnt.vertices[j];
-            switch (e.type) {
-              case "LINE": {
-                Renderer.drawLine(e.vertices[0], e.vertices[1]);
-                break;
-              }
-              case "ARC": {
-                Renderer.drawArc(e);
-                break;
-              }
-            }
+          for (let i=0; i<e.vertices.length; i++) {
+            renderEnt(e.vertices[i]);
           }
           break;
         }
         case "LINE": {
-          Renderer.drawLine(curEnt.vertices[0], curEnt.vertices[1]);
+          Renderer.drawLine(e.vertices[0], e.vertices[1]);
           break;
         }
         case "ARC": {
-          Renderer.drawArc(curEnt);
+          Renderer.drawArc(e);
           break;
         }
       }
+    }
+    //this will be innefcient with vertex count being higher than it needs to be most likely.
+    function renderExtrusion(e) {
+      for (let i=0; i < e.vertices.length; i++) {
+        const v1Extruded = e.vertices[i].vertices[0].getTranslated(e.attribs.extrusionDirection);
+        const v2Extruded = e.vertices[i].vertices[1].getTranslated(e.attribs.extrusionDirection);
+        Renderer.drawLine(e.vertices[i].vertices[0], v1Extruded);
+        Renderer.drawLine(e.vertices[i].vertices[1], v2Extruded);
+      }
+    }
+    for (let i = 0; i < this.entities.length; i++) {
+      // if (this.entities[i].attribs.extrusionDirection) {
+      //   renderExtrusion(this.entities[i]);  
+      // }
+      renderEnt(this.entities[i]);
     }
   }
 }
@@ -524,7 +529,7 @@ class MouseInput {
     if (this.active === true) {
       let deltaX = (this.initialPosition.x - e.clientX);
       let deltaY = (this.initialPosition.y - e.clientY);
-      const scalar = clamp(.0001 / (Camera.pos.z), .00001, .005);
+      const scalar = clamp(.0001 / Camera.pos.magnitude(), .00001, .005);
       Camera.translate(deltaX * scalar, deltaY * scalar, 0);
       this.initialPosition.x = e.clientX;
       this.initialPosition.y = e.clientY;
@@ -567,8 +572,6 @@ export {
   last,
   bulgeToArc,
   scaleRad,
-  scaleVerts,
-  scaleVert,
   WorldSpaceSize,
   scaleFactor,
 };

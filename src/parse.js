@@ -13,7 +13,9 @@ function handleDXF(fileString, is2D = true) {
     const parser = new DxfParser();
     const dxf = parser.parseSync(fileString);
     const entities = dxf.entities;
+    console.log(entities);
     const parsed = parseEntities(entities);
+    console.log(parsed);
     addEntitiesToScene(parsed);
 }
 
@@ -66,7 +68,6 @@ function parse2DLWPolyLine(polyline) {
         const v1 = polyline.vertices[i];
         let v2 = polyline.vertices[i+1];
         if (i === polyline.vertices.length - 1) {
-            console.log(polyline);
             if (polyline.shape === true) {
                 v2 = polyline.vertices[0];
             } else {
@@ -88,6 +89,36 @@ function parse2DLWPolyLine(polyline) {
     result.normalizeToWorld();
     return result;
 }
+function parse3DLWPolyline(polyline) {
+    const newPolyline = [];
+    for (let i=0; i < polyline.vertices.length; i++) {
+        const v1 = polyline.vertices[i];
+        let v2 = polyline.vertices[i+1];
+        if (i === polyline.vertices.length - 1) {
+            if (polyline.shape === true) {
+                v2 = polyline.vertices[0];
+            } else {
+                break;
+            }
+        }
+        if (v2 === undefined) {
+            break;
+        }
+        if (v1.bulge) {
+            const newArc = bulgeToArc(v1,v2);
+            newArc.vertices[0].z = polyline.elevation;
+        } else {
+            const newLine = new entity3D("LINE", [convertToVec3D(v1, polyline.elevation), convertToVec3D(v2, polyline.elevation)])
+            newPolyline.push(newLine);
+        }
+    }
+    const result = new entity3D("LWPOLYLINE", newPolyline)
+    if (polyline.extrusionDirectionX || polyline.extrusionDirectionX === 0) {
+        result.attribs.extrusionDirection = new vec3d(polyline.extrusionDirectionX, polyline.extrustionDirectionY, polyline.extrusionDirectionZ);
+    }
+    result.normalizeToWorld();
+    return result;
+}
 
 function parsePolyline(polyline) {
     const newPolyline = [];
@@ -101,6 +132,9 @@ function parsePolyline(polyline) {
                 break
             }
         } 
+        if ((v1.x === 0 && v1.y === 0 && v1.z === 0 ) || (v2.x === 0 && v2.y === 0 && v2.z === 0)) {
+            break;
+        }
         v2 = convertToVec3D(v2);
         const newLine = new entity3D("LINE", [v1,v2])
         newPolyline.push(newLine);
@@ -139,21 +173,22 @@ function parse2DArc(arc) {
 function parse3DArc(arc) {
     const result = new entity3D(
         "ARC",
-        [convertToVec3D(arc.center)],
-        new vec3d(arc.extrusionDirectionX, arc.extrustionDirectionY, arc.extrusionDirectionZ), {
+        [convertToVec3D(arc.center)],{
             startAngle: arc.startAngle,
             endAngle: arc.endAngle,
             radius: arc.radius
-        }
-        )
+        })
+    if (arc.extrusionDirectionX || arc.extrusionDirectionX === 0) {
+        result.attribs.extrusionDirection = new vec3d(arc.extrusionDirectionX, arc.extrusionDirectionY, arc.extrusionDirectionZ);
+    }
     result.normalizeToWorld()
     return result;    
 }
 function convertToVec2D(object) {
     return new vec2d(object.x, object.y);
 }
-function convertToVec3D(object) {
-    return new vec3d(object.x, object.y, object.z);
+function convertToVec3D(object, elevation) {
+    return new vec3d(object.x, object.y, elevation);
 }
     // let toShapes = [];
     // let used = new Set();
