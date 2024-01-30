@@ -3,7 +3,7 @@
 //no class methods because afaik it slows things down massively as your
 
 //object count increases
-const WorldSpaceSize = 1000;
+const WorldSpaceSize = 200;
 const scaleFactor = 10.0;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -344,70 +344,50 @@ class entity3D {
 //     }
 // }
 
-class camera {
-  update;
-  pos;
-  rotation;
-  fov;
-  near;
-  far;
-  constructor(
-    updateFunc,
-    pos = new vec3d(0, 0, 0.98),
-    rotation = new vec3d(0, 0, 0),
-    fov = 45,
-    near = 0.01,
-    far = 1000
-  ) {
-    this.update = updateFunc;
-    this.pos = pos;
-    this.rotation = rotation;
-    this.fov = fov;
-    this.near = near;
-    this.far = far;
-  }
-  setPos(x, y, z) {
+class Camera {
+  static pos = new vec3d(0, 0, 0.98);
+  static rotation = new vec3d(0, 0, 0);
+  static fov = 45;
+  static near = 0.01;
+  static far = 1000
+
+  static setPos(x, y, z) {
     this.pos.x = x;
     this.pos.y = y;
     this.pos.z = z;
-    this.update()
+    Scene.update(false)
   }
-  translate(x, y, z) {
+
+  static translate(x, y, z) {
     this.pos.x += x;
     this.pos.y += y;
     this.pos.z += z;
-    this.update();
+    Scene.update(false);
   }
-  getPos() {
+  static getPos() {
     return this.pos;
   }
 }
 //0 for 2d  | 1 for 3d
 class Renderer {
-  camera;
-  canvas;
-  context;
-  constructor(updateFunc, canvas = null, context = null) {
-    this.camera = new camera(updateFunc);
-    this.canvas = canvas;
-    this.context = context;
-  }
-  init() {
+  static canvas = document.getElementById("drawing-canvas");;
+  static context = this.canvas.getContext("2d");;
+  static init() {
     this.canvas = document.getElementById("drawing-canvas");
     this.context = this.canvas.getContext("2d");
   }
-  update() {
+  static update() {
     this.canvas.width = this.canvas.width;
     this.canvas.height = this.canvas.height;
   }
-  drawLine(p1, p2) {
+  static drawLine(p1, p2) {
     const p1OnScreen = p1.projectToScreen(
-      this.camera,
+      Camera,
       this.canvas.width,
       this.canvas.height
     );
     const p2OnScreen = p2.projectToScreen(
-      this.camera,
+      Camera,
       this.canvas.width,
       this.canvas.height
     );
@@ -417,7 +397,7 @@ class Renderer {
     this.context.stroke();
     this.context.closePath();
   }
-  drawArc(arc) {
+  static drawArc(arc) {
     const projectRadiusToScreen = () => {
       let p1 = new vec3d(
         arc.vertices[0].x,
@@ -430,12 +410,12 @@ class Renderer {
         arc.vertices[0].z
       );
       p1 = p1.projectToScreen(
-        this.camera,
+        Camera,
         this.canvas.width,
         this.canvas.height
       );
       p2 = p2.projectToScreen(
-        this.camera,
+        Camera,
         this.canvas.width,
         this.canvas.height
       );
@@ -444,7 +424,7 @@ class Renderer {
       return Math.sqrt(dx * dx + dy * dy);
     };
     const center = arc.vertices[0].projectToScreen(
-      this.camera,
+      Camera,
       this.canvas.width,
       this.canvas.height
     );
@@ -463,38 +443,26 @@ class Renderer {
   }
 }
 
-class scene {
-  renderer;
-  mouseInput;
-  entities;
-  constructor(renderer = new Renderer(() => this.update(false)), entities = []) {
-    this.renderer = renderer;
-    this.entities = entities;
-    this.mouseInput = new MouseInput(renderer.camera);
-  }
-  init() {
-    this.renderer.init();
-    this.mouseInput.init();
-    this.renderer.camera.update = () => {this.update(false)}
-  }
-  setEntities(ents) {
+class Scene {
+  static entities = [];
+  static setEntities(ents) {
     this.entities = ents;
   }
-  addEntity(ent) {
+  static addEntity(ent) {
     this.entities.push(ent);
   }
-  wipeEntities() {
+  static wipeEntities() {
     this.entities = [];
   }
-  update(canvasChange) {
+  static update(canvasChange) {
     if (canvasChange) {
-      this.renderer.canvas.width = window.innerWidth * 0.9;
-      this.renderer.canvas.height = window.innerHeight * 0.9;
+      Renderer.canvas.width = window.innerWidth * 0.9;
+      Renderer.canvas.height = window.innerHeight * 0.9;
     }
-    this.renderer.update();
+    Renderer.update();
     this.render();
   }
-  render() {
+  static render() {
     for (let i = 0; i < this.entities.length; i++) {
       const curEnt = this.entities[i];
       switch (curEnt.type) {
@@ -503,11 +471,11 @@ class scene {
             const e = curEnt.vertices[j];
             switch (e.type) {
               case "LINE": {
-                this.renderer.drawLine(e.vertices[0], e.vertices[1]);
+                Renderer.drawLine(e.vertices[0], e.vertices[1]);
                 break;
               }
               case "ARC": {
-                this.renderer.drawArc(e);
+                Renderer.drawArc(e);
                 break;
               }
             }
@@ -515,11 +483,11 @@ class scene {
           break;
         }
         case "LINE": {
-          this.renderer.drawLine(curEnt.vertices[0], curEnt.vertices[1]);
+          Renderer.drawLine(curEnt.vertices[0], curEnt.vertices[1]);
           break;
         }
         case "ARC": {
-          this.renderer.drawArc(curEnt);
+          Renderer.drawArc(curEnt);
           break;
         }
       }
@@ -528,51 +496,46 @@ class scene {
 }
 
 class MouseInput {
-  active;
-  initialPosition;
-  cam;
-  constructor(cameraRef) {
-    this.active = false;
-    this.initialPosition = new vec2d(0,0);
-    this.cam = cameraRef;
-  }
-  init() {
+  static active = false;
+  static initialPosition = new vec2d(0,0);
+
+  static init() {
     document.addEventListener("mousedown", this.mouseDown.bind(this))
     document.addEventListener("mouseup", this.mouseUp.bind(this))
     document.addEventListener("mousemove", this.mouseMove.bind(this));
     document.addEventListener("wheel", this.scroll.bind(this))
   }
-  scroll(e) {
+  static scroll(e) {
       if (e.deltaY > 0) {
         this.scrollDown(e);
     } else {
         this.scrollUp();
     }
   }
-  mouseDown(down) {
+  static mouseDown(down) {
     this.active = true;
     this.initialPosition.x = down.clientX; this.initialPosition.y = down.clientY;
   }
-  mouseUp() {
+  static mouseUp() {
     this.active = false;
     this.initialPosition.x = 0; this.initialPosition.y = 0;
   }
-  mouseMove(e) {
+  static mouseMove(e) {
     if (this.active === true) {
       let deltaX = (this.initialPosition.x - e.clientX);
       let deltaY = (this.initialPosition.y - e.clientY);
-      const scalar = clamp(.0001 / (this.cam.pos.z), .00001, .005);
-      this.cam.translate(deltaX * scalar, deltaY * scalar, 0);
+      const scalar = clamp(.0001 / (Camera.pos.z), .00001, .005);
+      Camera.translate(deltaX * scalar, deltaY * scalar, 0);
       this.initialPosition.x = e.clientX;
       this.initialPosition.y = e.clientY;
       setTimeout(null, 20);
     }
   }
-  scrollDown() {
-    this.cam.translate(0,0,-.01);
+  static scrollDown() {
+    Camera.translate(0,0,-.01);
   }
-  scrollUp() {
-    this.cam.translate(0,0,.01);
+  static scrollUp() {
+    Camera.translate(0,0,.01);
   }
 
 }
@@ -590,12 +553,12 @@ class outFile {
 
 export {
   Renderer,
-  camera,
+  Camera,
   vec2d,
   entity2D,
   entity3D,
   vec3d,
-  scene,
+  Scene,
   MouseInput,
   outFile,
   clamp,
