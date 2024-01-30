@@ -12,3 +12,37 @@ TO ADD -
     - File Converter (DWG -> STP etc) Probably use some sort of IR for this.
     - add swizzling
     
+
+    Parse the DXF file and extract the extrusion vector: The extrusion vector is a normal vector to the base plane of a planar entity. It is usually stored as a 3D vector in the DXF file.
+import ezdxf
+
+def get_extrusion_vector(entity):
+    # Extract the extrusion vector from the entity
+    return entity.dxf.extrusion
+
+Project the entity’s coordinates onto the 2D plane: To project the 3D entity’s coordinates onto the 2D plane, you can use dot and cross products. The following code snippet demonstrates how to project a point onto a plane.
+def project_point_on_plane(point, normal_vector):
+    # Calculate the projection vector
+    projection_vector = point - dot_product(point, normal_vector) * normal_vector
+
+    # Project the point onto the plane
+    projected_point = projection_vector + dot_product(point, normal_vector) * normal_vector
+
+    return projected_point
+
+def dot_product(vector1, vector2):
+    return sum(map(lambda x, y: x * y, vector1, vector2))
+
+Apply the extrusion: After projecting the 3D entity’s coordinates onto the 2D plane, you can apply the extrusion by creating a new entity with the projected 2D coordinates and the extrusion vector.
+def apply_extrusion(entity, extrusion_vector, height):
+    # Project the entity's coordinates onto the 2D plane
+    projected_points = [project_point_on_plane(point, extrusion_vector) for point in entity.points]
+
+    # Create a new entity with the projected 2D coordinates and the extrusion vector
+    new_entity = MyDXFEntity(points=projected_points, extrusion=extrusion_vector, height=height)
+
+    return new_entity
+
+Please note that the provided code snippets are just examples and might need adjustments depending on the specific DXF file format and the entities you want to process. The MyDXFEntity class is a placeholder for the actual DXF entity class you are working with.
+
+Confidence: 85%

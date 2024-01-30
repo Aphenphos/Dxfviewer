@@ -113,9 +113,6 @@ function parse3DLWPolyline(polyline) {
         }
     }
     const result = new entity3D("LWPOLYLINE", newPolyline)
-    if (polyline.extrusionDirectionX || polyline.extrusionDirectionX === 0) {
-        result.attribs.extrusionDirection = new vec3d(polyline.extrusionDirectionX, polyline.extrustionDirectionY, polyline.extrusionDirectionZ);
-    }
     result.normalizeToWorld();
     return result;
 }
