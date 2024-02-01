@@ -91,6 +91,12 @@ function parse2DLWPolyLine(polyline) {
 }
 function parse3DLWPolyline(polyline) {
     const newPolyline = [];
+    let extrusion = null;
+    if (polyline.extrusionDirectionX === 0 || polyline.extrusionDirectionX) {
+        extrusion = new vec3d(
+            polyline.extrusionDirectionX, polyline.extrusionDirectionY, polyline.extrusionDirectionZ
+        )
+    }
     for (let i=0; i < polyline.vertices.length; i++) {
         const v1 = polyline.vertices[i];
         let v2 = polyline.vertices[i+1];
@@ -108,8 +114,18 @@ function parse3DLWPolyline(polyline) {
             const newArc = bulgeToArc(v1,v2);
             newArc.vertices[0].z = polyline.elevation;
         } else {
-            const newLine = new entity3D("LINE", [convertToVec3D(v1, polyline.elevation), convertToVec3D(v2, polyline.elevation)])
-            newPolyline.push(newLine);
+            const vec1 = convertToVec3D(v1, polyline.elevation);
+            const vec2 = convertToVec3D(v2, polyline.elevation);
+            if (extrusion === null) {
+                const newLine = new entity3D("LINE", [vec1, vec2]);
+                newPolyline.push(newLine);                
+            } else {
+                console.log(extrusion);
+                const vec1Extruded = applyExtrusion(vec1,extrusion)
+                const vec2Extruded = applyExtrusion(vec2,extrusion)
+                const newLine = new entity3D("LINE", [vec1Extruded, vec2Extruded])
+                newPolyline.push(newLine);
+            }
         }
     }
     const result = new entity3D("LWPOLYLINE", newPolyline)
@@ -187,6 +203,50 @@ function convertToVec2D(object) {
 function convertToVec3D(object, elevation) {
     return new vec3d(object.x, object.y, elevation);
 }
+function applyExtrusion(point, extrusion) {
+    function crossProduct(vec1, vec2) {
+        return new vec3d(
+            vec1.y * vec2.z - vec1.z * vec2.y,
+            vec1.z * vec2.x - vec1.x * vec2.z,
+            vec1.x * vec2.y - vec1.y * vec2.x
+        );
+    }
+
+    function normalize(vec) {
+        let length = vec.magnitude();
+        return new vec3d(vec.x / length, vec.y / length, vec.z / length);
+    }
+
+    let Az = normalize(extrusion);
+    let Ax, Ay;
+
+    if (Math.abs(Az.x) < 1/64 && Math.abs(Az.y) < 1/64) {
+        Ax = normalize(crossProduct(new vec3d(0, 1, 0), Az));
+    } else {
+        Ax = normalize(crossProduct(new vec3d(0, 0, 1), Az));
+    }
+
+    Ay = normalize(crossProduct(Az, Ax));
+
+    function wcsToOcs(point) {
+        let px = point.x, py = point.y, pz = point.z;
+        let x = px * Ax.x + py * Ax.y + pz * Ax.z;
+        let y = px * Ay.x + py * Ay.y + pz * Ay.z;
+        let z = px * Az.x + py * Az.y + pz * Az.z;
+        return new vec3d(x, y, z);
+    }
+
+    let Wx = wcsToOcs(new vec3d(1, 0, 0));
+    let Wy = wcsToOcs(new vec3d(0, 1, 0));
+    let Wz = wcsToOcs(new vec3d(0, 0, 1));
+
+    return new vec3d(
+        point.x * Wx.x + point.y * Wx.y + point.z * Wx.z,
+        point.x * Wy.x + point.y * Wy.y + point.z * Wy.z,
+        point.x * Wz.x + point.y * Wz.y + point.z * Wz.z
+    );
+}
+
     // let toShapes = [];
     // let used = new Set();
     // let shape = [null];

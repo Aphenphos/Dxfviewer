@@ -167,6 +167,13 @@ class vec3d {
     this.y = this.y * scaleFactor;
     this.z = this.z * scaleFactor;
   }
+  dilate(x) {
+    return new vec3d(
+      this.x / x,
+      this.y / x,
+      this.z / x
+    );
+  }
   rotate(rotation) {
     let sinX = Math.sin(rotation.x);
     let cosX = Math.cos(rotation.x);
@@ -224,6 +231,22 @@ class vec3d {
       this.y + translation.y,
       this.z + translation.z
     )
+  }
+  crossProduct(v) {
+    return new vec3d(
+      this.y * v.z - this.z * v.y,
+      this.z * v.x - this.x * v.z,
+      this.x * v.y - this.y * v.x
+    );
+  }
+  set(x,y,z) {
+    this.x = x; this.y = y; this.z = z;
+  }
+  magnitude() {
+    return Math.sqrt(this.x*this.x + this.y*this.y + this.z*this.z)
+  }
+  toMatrix() {
+    return [this.x,this.y,this.z];
   }
 }
 
