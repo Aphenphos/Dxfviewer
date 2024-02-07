@@ -49,47 +49,6 @@ function bulgeToArc(p1, p2) {
 function scaleRad(rad) {
   return rad * scaleFactor;
 }
-// function scaleVerts(verts) {
-//   let totalX = 0;
-//   let totalY = 0;
-//   const newVerts = [];
-//   for (let i = 0; i < verts.length; i++) {
-//     const v = verts[i];
-//     if (verts.center) {
-//       totalX += verts.center.x;
-//       totalY += verts.center.y;
-//     } else {
-//       totalX += v.x;
-//       totalY += v.y;
-//     }
-//   }
-
-//   const shapeCenter = new vec2d(totalX / verts.length, totalY / verts.length);
-
-//   for (let i = 0; i < verts.length; i++) {
-//     let curVert = verts[i];
-//     let translatedVert = new vec2d(
-//       curVert.x - shapeCenter.x,
-//       curVert.y - shapeCenter.y
-//     );
-
-//     let scaledVert = new vec2d(
-//       translatedVert.x * scaleFactor,
-//       translatedVert.y * scaleFactor
-//     );
-
-//     let retranslatedVert = new vec2d(
-//       scaledVert.x + shapeCenter.x,
-//       scaledVert.y + shapeCenter.y
-//     );
-//     if (verts[i].bulge) {
-//       retranslatedVert.bulge = verts[i].bulge;
-//     }
-//     newVerts.push(retranslatedVert);
-//   }
-//   return newVerts;
-// }
-
 function normalizeRadiusToWorld(rad) {
   return (2 * (rad - -WorldSpaceSize)) / (WorldSpaceSize - -WorldSpaceSize) - 1;
 }
@@ -344,67 +303,6 @@ class entity3D {
     }
   }
 }
-
-// class shape {
-//     entities; children; parent; isNormalised; is3D;
-//     static id = 0;
-//     constructor(entities = [], name=null) {
-//         this.id = shape.id++;
-//         this.name = name;
-//         this.entities = entities;
-//         this.children = [];
-//         this.parent = null;
-//         this.isNormalised = false;
-//         this.boundingBox = null
-//         this.is3D = false;
-//     }
-//     findBoundingBox() {
-//         const size = this.entities.length;
-//         let minX = Infinity; let minY = Infinity; let minZ = Infinity;
-//         let maxX = -Infinity; let maxY = -Infinity; let maxZ = -Infinity;
-//         for (let i=0; i < size; i++) {
-//             const vertCount = this.entities[i].vertices.length;
-//             for (let j=0; j < vertCount; j++) {
-//                 const curVert = this.entities[i].vertices[j];
-//                 if (curVert.x > maxX) maxX = curVert.x;
-//                 if (curVert.x < minX) minX = curVert.x;
-//                 if (curVert.y > maxY) maxY = curVert.y;
-//                 if (curVert.y < minY) minY = curVert.y;
-//                 if (this.is3D) {
-//                     if (curVert.z > maxZ) maxZ = curVert.z;
-//                     if (curVert.z < minZ) minZ = curVert.z;
-//                 }
-//             }
-//         }
-//         if (this.is3D) {
-//             this.boundingBox = {
-//                 min: new vec3d(minX,minY,minZ),
-//                 max: new vec3d(maxX,maxY,maxZ)
-//             }
-//         } else {
-//             this.boundingBox = {
-//                 min: new vec2d(minX, minY),
-//                 max: new vec2d(maxX,maxY)
-//             }
-//         }
-//     }
-
-//     normalizeToSelf() {
-//         if (this.boundingBox === null) {
-//             this.findBoundingBox();
-//         }
-//         for (let i=0; i < this.entities.length; i++) {
-//             const curEnt = this.entities[i];
-//             for (let j=0; j < curEnt.vertices.length; j++) {
-//                 const curVert = curEnt.vertices[j];
-//                 curVert.normalize(this.boundingBox.min, this.boundingBox.max);
-//             }
-//         }
-//         this.isNormalised = true;
-//         this.boundingBox = null;
-//     }
-// }
-
 class Camera {
   static pos = new vec3d(0, 0, -1);
   static rotation = new vec3d(1,0,0);
