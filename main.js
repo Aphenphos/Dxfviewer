@@ -15,5 +15,6 @@ function handleFileChange() {
 }
 
 function handleFileLoad(fileString) {
+
     handleDXF(fileString);
 }

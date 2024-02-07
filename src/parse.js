@@ -9,11 +9,10 @@ import {addEntitiesToScene} from './render'
 const extractB = document.getElementById("extract")
 const temp = new outFile();
 extractB.addEventListener("click", () => downloadFile(temp.data, "letters.json", "text"))
-function handleDXF(fileString, is2D = true) { 
+function handleDXF(fileString) { 
     const parser = new DxfParser();
     const dxf = parser.parseSync(fileString);
     const entities = dxf.entities;
-    console.log(entities);
     const parsed = parseEntities(entities);
     console.log(parsed);
     addEntitiesToScene(parsed);
@@ -120,7 +119,6 @@ function parse3DLWPolyline(polyline) {
                 const newLine = new entity3D("LINE", [vec1, vec2]);
                 newPolyline.push(newLine);                
             } else {
-                console.log(extrusion);
                 const vec1Extruded = applyExtrusion(vec1,extrusion)
                 const vec2Extruded = applyExtrusion(vec2,extrusion)
                 const newLine = new entity3D("LINE", [vec1Extruded, vec2Extruded])

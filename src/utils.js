@@ -138,7 +138,7 @@ class vec2d {
       this.y - camera.pos.y,
       this.z - camera.pos.z
     );
-    pointTranslated.rotate(camera.rotation);
+    pointTranslated.rotateAboutPoint(camera.rotation, Scene.centroidOfEnts);
     const distanceRatio = 1 / Math.tan(camera.fov / 2);
     const aspectRatio = screenW / screenH;
     const pointProjected = new vec2d(
@@ -175,25 +175,53 @@ class vec3d {
     );
   }
   rotate(rotation) {
-    let sinX = Math.sin(rotation.x);
-    let cosX = Math.cos(rotation.x);
-    let sinY = Math.sin(rotation.y);
-    let cosY = Math.cos(rotation.y);
-    let sinZ = Math.sin(rotation.z);
-    let cosZ = Math.cos(rotation.z);
-    let dx =
-      this.x * cosY * cosZ +
-      this.y * (cosZ * sinX * sinY - cosX * sinZ) +
-      this.z * (sinX * sinZ + cosX * cosZ * sinY);
-    let dy =
-      this.x * cosY * sinZ +
-      this.y * (cosX * cosZ + sinX * sinY * sinZ) +
-      this.z * (cosX * sinY * sinZ - cosZ * sinX);
-    let dz = this.x * -sinY + this.y * cosY * sinX + this.z * cosX * cosY;
+    let w = Math.cos(rotation.x/2);
+    let i = this.x * Math.sin(rotation.x/2);
+    let j = this.y * Math.sin(rotation.y/2);
+    let k = this.z * Math.sin(rotation.z/2);
+
+    // Apply rotation
+    let dx = w*w*this.x + 2*this.y*i - 2*this.z*j + i*i*this.x + 2*this.y*j + 2*this.z*k - j*j*this.x - k*k*this.x;
+    let dy = 2*this.x*i + w*w*this.y + 2*this.z*k - 2*j*i + 2*this.x*j + i*i*this.y - j*j*this.y + 2*this.z*i + k*k*this.y;
+    let dz = 2*this.x*i - 2*this.y*k + w*w*this.z + 2*j*i + 2*this.x*k + 2*this.y*j - i*i*this.z + j*j*this.z + k*k*this.z;
 
     this.x = dx;
     this.y = dy;
     this.z = dz;
+  }
+  rotateAboutPoint(rotation, point) {
+    const qx = Math.sin(rotation.x / 2);
+    const qy = Math.sin(rotation.y / 2);
+    const qz = Math.sin(rotation.z / 2);
+    const qw = Math.cos(rotation.x / 2) * Math.cos(rotation.y / 2) * Math.cos(rotation.z / 2);
+
+    // Normalize the quaternion
+    const magnitude = Math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw);
+    const normalizedQx = qx / magnitude;
+    const normalizedQy = qy / magnitude;
+    const normalizedQz = qz / magnitude;
+    const normalizedQw = qw / magnitude;
+
+    // Apply rotation
+    const px = this.x - point.x;
+    const py = this.y - point.y;
+    const pz = this.z - point.z;
+
+    const rotatedPx = px * (normalizedQw * normalizedQw + normalizedQx * normalizedQx - normalizedQy * normalizedQy - normalizedQz * normalizedQz) +
+                      py * (2 * normalizedQx * normalizedQy - 2 * normalizedQw * normalizedQz) +
+                      pz * (2 * normalizedQx * normalizedQz + 2 * normalizedQw * normalizedQy);
+
+    const rotatedPy = px * (2 * normalizedQx * normalizedQy + 2 * normalizedQw * normalizedQz) +
+                      py * (normalizedQw * normalizedQw - normalizedQx * normalizedQx + normalizedQy * normalizedQy - normalizedQz * normalizedQz) +
+                      pz * (2 * normalizedQy * normalizedQz - 2 * normalizedQw * normalizedQx);
+
+    const rotatedPz = px * (2 * normalizedQx * normalizedQz - 2 * normalizedQw * normalizedQy) +
+                      py * (2 * normalizedQy * normalizedQz + 2 * normalizedQw * normalizedQx) +
+                      pz * (normalizedQw * normalizedQw - normalizedQx * normalizedQx - normalizedQy * normalizedQy + normalizedQz * normalizedQz);
+
+    this.x = rotatedPx + point.x;
+    this.y = rotatedPy + point.y;
+    this.z = rotatedPz + point.z;
   }
   normalizeToWorld() {
     this.x =
@@ -204,12 +232,13 @@ class vec3d {
       (2 * (this.z - -WorldSpaceSize)) / (WorldSpaceSize - -WorldSpaceSize) - 1;
   }
   projectToScreen(camera, screenW, screenH) {
-    const pointTranslated = new vec3d(
-      this.x - camera.pos.x,
-      this.y - camera.pos.y,
-      this.z - camera.pos.z
-    );
-    pointTranslated.rotate(camera.rotation);
+    const pointTranslated = new vec3d(this.x, this.y, this.z);
+    pointTranslated.rotateAboutPoint(camera.rotation, Scene.centroidOfEnts);
+    pointTranslated.translate(new vec3d(
+      -camera.pos.x,
+      -camera.pos.y,
+      -camera.pos.z
+    ))
     const distanceRatio = 1 / Math.tan(camera.fov / 2);
     const aspectRatio = screenW / screenH;
     const pointProjected = new vec2d(
@@ -222,15 +251,17 @@ class vec3d {
     );
     return pointOnScreen;
   }
-  magnitude() {
-    return Math.sqrt(this.x**2 + this.y**2 + this.z**2);
-  }
   getTranslated(translation) {
     return new vec3d(
       this.x + translation.x,
       this.y + translation.y,
       this.z + translation.z
     )
+  }
+  translate(translation) {
+    this.x += translation.x;
+    this.y += translation.y;
+    this.z += translation.z
   }
   crossProduct(v) {
     return new vec3d(
@@ -247,6 +278,12 @@ class vec3d {
   }
   toMatrix() {
     return [this.x,this.y,this.z];
+  }
+  normalize() {
+    const magnitude = this.magnitude();
+    this.x = this.x / magnitude;
+    this.y = this.y / magnitude;
+    this.z = this.z / magnitude;
   }
 }
 
@@ -369,8 +406,8 @@ class entity3D {
 // }
 
 class Camera {
-  static pos = new vec3d(0, 0, 0.98);
-  static rotation = new vec3d(0, 0, 0);
+  static pos = new vec3d(0, 0, -1);
+  static rotation = new vec3d(1,0,0);
   static fov = 45;
   static near = 0.01;
   static far = 1000
@@ -381,7 +418,12 @@ class Camera {
     this.pos.z = z;
     Scene.update(false)
   }
-
+  static rotate(x, y, z) {
+    this.rotation.x +=x;
+    this.rotation.y +=y;
+    this.rotation.z +=z;
+    Scene.update(false);
+}
   static translate(x, y, z) {
     this.pos.x += x;
     this.pos.y += y;
@@ -469,8 +511,53 @@ class Renderer {
 
 class Scene {
   static entities = [];
+  static centroidOfEnts = new vec3d(0,0,0);
+  static findCentroid() {
+    let vertCnt = 0;
+    Scene.centroidOfEnts = new vec3d(0,0,0);
+    function getCoords(e) {  
+      switch (e.type) {
+        case("LINE"): {
+          Scene.centroidOfEnts.translate(e.vertices[0]);
+          Scene.centroidOfEnts.translate(e.vertices[0]);
+          vertCnt +=2;
+          break;
+        }
+        case("CIRCLE"): {
+          Scene.centroidOfEnts.translate(e.vertices[0]);
+          vertCnt +=1;
+          break;
+        }
+        case("ARC"): {
+          Scene.centroidOfEnts.translate(e.vertices[0]);
+          vertCnt +=1;
+          break;
+        }
+        default: {
+          for (let j=0; j < e.vertices.length; j++) {
+            getCoords(e.vertices[j]);
+          }
+          break;
+        }
+      }
+    }
+
+    for (let i=0; i < Scene.entities.length; i++) {
+      const curEnt = Scene.entities[i];
+      getCoords(curEnt);
+    }
+    Scene.centroidOfEnts.x = Scene.centroidOfEnts.x / vertCnt;
+    Scene.centroidOfEnts.y = Scene.centroidOfEnts.y / vertCnt;
+    Scene.centroidOfEnts.z = Scene.centroidOfEnts.z / vertCnt;
+    Camera.pos.x = this.centroidOfEnts.x;
+    Camera.pos.y = this.centroidOfEnts.y;
+    Camera.pos.z = this.centroidOfEnts.z - 1;
+    return;
+  }
   static setEntities(ents) {
-    this.entities = ents;
+    Scene.entities = ents;
+    Scene.findCentroid();
+    console.log(Scene.centroidOfEnts)
   }
   static addEntity(ent) {
     this.entities.push(ent);
@@ -505,66 +592,86 @@ class Scene {
         }
       }
     }
+
     //this will be innefcient with vertex count being higher than it needs to be most likely.
-    function renderExtrusion(e) {
-      for (let i=0; i < e.vertices.length; i++) {
-        const v1Extruded = e.vertices[i].vertices[0].getTranslated(e.attribs.extrusionDirection);
-        const v2Extruded = e.vertices[i].vertices[1].getTranslated(e.attribs.extrusionDirection);
-        Renderer.drawLine(e.vertices[i].vertices[0], v1Extruded);
-        Renderer.drawLine(e.vertices[i].vertices[1], v2Extruded);
-      }
-    }
     for (let i = 0; i < this.entities.length; i++) {
-      // if (this.entities[i].attribs.extrusionDirection) {
-      //   renderExtrusion(this.entities[i]);  
-      // }
       renderEnt(this.entities[i]);
     }
   }
 }
 
-class MouseInput {
-  static active = false;
-  static initialPosition = new vec2d(0,0);
+  class MouseInput {
+    static active = {
+      left: false,
+      middle: false,
+      right: false
+    };
+    static initialPosition = new vec2d(0,0);
 
-  static init() {
-    document.addEventListener("mousedown", this.mouseDown.bind(this))
-    document.addEventListener("mouseup", this.mouseUp.bind(this))
-    document.addEventListener("mousemove", this.mouseMove.bind(this));
-    document.addEventListener("wheel", this.scroll.bind(this))
-  }
-  static scroll(e) {
-      if (e.deltaY > 0) {
-        this.scrollDown(e);
-    } else {
-        this.scrollUp();
+    static init() {
+      document.addEventListener("mousedown", this.mouseDown.bind(this))
+      document.addEventListener("mouseup", this.mouseUp.bind(this))
+      document.addEventListener("mousemove", this.mouseMove.bind(this));
+      document.addEventListener("wheel", this.scroll.bind(this))
     }
-  }
-  static mouseDown(down) {
-    this.active = true;
-    this.initialPosition.x = down.clientX; this.initialPosition.y = down.clientY;
-  }
-  static mouseUp() {
-    this.active = false;
-    this.initialPosition.x = 0; this.initialPosition.y = 0;
-  }
-  static mouseMove(e) {
-    if (this.active === true) {
-      let deltaX = (this.initialPosition.x - e.clientX);
-      let deltaY = (this.initialPosition.y - e.clientY);
-      const scalar = clamp(.0001 / Camera.pos.magnitude(), .00001, .005);
-      Camera.translate(deltaX * scalar, deltaY * scalar, 0);
-      this.initialPosition.x = e.clientX;
-      this.initialPosition.y = e.clientY;
-      setTimeout(null, 20);
+    static scroll(e) {
+        if (e.deltaY > 0) {
+          this.scrollDown(e);
+      } else {
+          this.scrollUp();
+      }
     }
-  }
-  static scrollDown() {
-    Camera.translate(0,0,-.01);
-  }
-  static scrollUp() {
-    Camera.translate(0,0,.01);
-  }
+    static mouseDown(down) {
+      switch (down.button) {
+        case (0): {
+          this.active.left = true;
+          this.initialPosition.x = down.clientX; this.initialPosition.y = down.clientY;
+          break;
+        }
+        case (1): {
+          this.active.middle = true;
+          break;
+        }
+      }
+    }
+    static mouseUp(up) {
+      switch (up.button) {
+        case (0): {
+          this.active.left = false;
+          break;
+        }
+        case (1): {
+          this.active.middle = false;
+          break
+        }
+      }
+      this.initialPosition.x = 0; this.initialPosition.y = 0;
+    }
+    static mouseMove(e) {
+      if (this.active.left === true) {
+        let deltaX = (this.initialPosition.x - e.clientX);
+        let deltaY = (this.initialPosition.y - e.clientY);
+        const scalar = clamp(.0001 / Camera.pos.magnitude(), .00001, .005);
+        Camera.translate(deltaX * scalar, deltaY * scalar, 0);
+        this.initialPosition.x = e.clientX;
+        this.initialPosition.y = e.clientY;
+        setTimeout(null, 20);
+      }
+      if (this.active.middle === true) {
+        let deltaX = (this.initialPosition.x - e.clientX);
+        const scalar = clamp(.0001 / Camera.pos.magnitude(), .01, .005);
+        Camera.rotate(deltaX * scalar,0,0);
+        this.initialPosition.x = e.clientX;
+        this.initialPosition.y = e.clientY;
+        setTimeout(null, 20);
+      }
+    }
+    static scrollDown() {
+      Camera.translate(0,0,-.01);
+    }
+    static scrollUp() {
+      Camera.translate(0,0,.01);
+    }
 
 }
 
