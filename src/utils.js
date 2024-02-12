@@ -110,6 +110,41 @@ class vec2d {
     );
     return pointOnScreen;
   }
+  rotateAboutPoint(rotation, point) {
+    const qx = Math.sin(rotation.x / 2);
+    const qy = Math.sin(rotation.y / 2);
+    const qz = Math.sin(rotation.z / 2);
+    const qw = Math.cos(rotation.x / 2) * Math.cos(rotation.y / 2) * Math.cos(rotation.z / 2);
+
+    // Normalize the quaternion
+    const magnitude = Math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw);
+    const normalizedQx = qx / magnitude;
+    const normalizedQy = qy / magnitude;
+    const normalizedQz = qz / magnitude;
+    const normalizedQw = qw / magnitude;
+
+    // Apply rotation
+    const px = this.x - point.x;
+    const py = this.y - point.y;
+    const pz = this.z - point.z;
+
+    const rotatedPx = px * (normalizedQw * normalizedQw + normalizedQx * normalizedQx - normalizedQy * normalizedQy - normalizedQz * normalizedQz) +
+                      py * (2 * normalizedQx * normalizedQy - 2 * normalizedQw * normalizedQz) +
+                      pz * (2 * normalizedQx * normalizedQz + 2 * normalizedQw * normalizedQy);
+
+    const rotatedPy = px * (2 * normalizedQx * normalizedQy + 2 * normalizedQw * normalizedQz) +
+                      py * (normalizedQw * normalizedQw - normalizedQx * normalizedQx + normalizedQy * normalizedQy - normalizedQz * normalizedQz) +
+                      pz * (2 * normalizedQy * normalizedQz - 2 * normalizedQw * normalizedQx);
+
+    const rotatedPz = px * (2 * normalizedQx * normalizedQz - 2 * normalizedQw * normalizedQy) +
+                      py * (2 * normalizedQy * normalizedQz + 2 * normalizedQw * normalizedQx) +
+                      pz * (normalizedQw * normalizedQw - normalizedQx * normalizedQx - normalizedQy * normalizedQy + normalizedQz * normalizedQz);
+    return new vec3d(
+      rotatedPx + point.x,
+      rotatedPy + point.y,
+      rotatedPz + point.z,
+    )
+  }
 }
 
 class vec3d {
@@ -177,10 +212,11 @@ class vec3d {
     const rotatedPz = px * (2 * normalizedQx * normalizedQz - 2 * normalizedQw * normalizedQy) +
                       py * (2 * normalizedQy * normalizedQz + 2 * normalizedQw * normalizedQx) +
                       pz * (normalizedQw * normalizedQw - normalizedQx * normalizedQx - normalizedQy * normalizedQy + normalizedQz * normalizedQz);
-
-    this.x = rotatedPx + point.x;
-    this.y = rotatedPy + point.y;
-    this.z = rotatedPz + point.z;
+    return new vec3d(
+      rotatedPx + point.x,
+      rotatedPy + point.y,
+      rotatedPz + point.z,
+    )
   }
   normalizeToWorld() {
     this.x =
@@ -192,7 +228,6 @@ class vec3d {
   }
   projectToScreen(camera, screenW, screenH) {
     const pointTranslated = new vec3d(this.x, this.y, this.z);
-    pointTranslated.rotateAboutPoint(camera.rotation, Scene.centroidOfEnts);
     pointTranslated.translate(new vec3d(
       -camera.pos.x,
       -camera.pos.y,
@@ -291,7 +326,7 @@ class entity3D {
   last() {
     return this.vertices[length - 1];
   }
-  normalizeToWorld() {
+  normalizeToWorld() { Scene.centroidOfEnts
     for (let i = 0; i < this.vertices.length; i++) {
       this.vertices[i].normalizeToWorld();
     }
@@ -305,7 +340,7 @@ class entity3D {
 }
 class Camera {
   static pos = new vec3d(0, 0, -1);
-  static rotation = new vec3d(1,0,0);
+  static rotation = new vec3d(0,0,0);
   static fov = 45;
   static near = 0.01;
   static far = 1000
@@ -345,12 +380,14 @@ class Renderer {
     this.canvas.height = this.canvas.height;
   }
   static drawLine(p1, p2) {
-    const p1OnScreen = p1.projectToScreen(
+    const p1Rotated = p1.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
+    const p2Rotated = p2.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
+    const p1OnScreen = p1Rotated.projectToScreen(
       Camera,
       this.canvas.width,
       this.canvas.height
     );
-    const p2OnScreen = p2.projectToScreen(
+    const p2OnScreen = p2Rotated.projectToScreen(
       Camera,
       this.canvas.width,
       this.canvas.height
@@ -362,46 +399,44 @@ class Renderer {
     this.context.closePath();
   }
   static drawArc(arc) {
-    const projectRadiusToScreen = () => {
-      let p1 = new vec3d(
-        arc.vertices[0].x,
-        arc.vertices[0].y,
-        arc.vertices[0].z
-      );
-      let p2 = new vec3d(
-        arc.vertices[0].x + arc.attribs.radius,
-        arc.vertices[0].y,
-        arc.vertices[0].z
-      );
-      p1 = p1.projectToScreen(
-        Camera,
-        this.canvas.width,
-        this.canvas.height
-      );
-      p2 = p2.projectToScreen(
-        Camera,
-        this.canvas.width,
-        this.canvas.height
-      );
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      return Math.sqrt(dx * dx + dy * dy);
-    };
-    const center = arc.vertices[0].projectToScreen(
-      Camera,
-      this.canvas.width,
-      this.canvas.height
-    );
-    const rad = projectRadiusToScreen(arc.attribs.radius);
+    const stepCount = 100;
+    if (arc.attribs.endAngle < arc.attribs.startAngle) {
+      arc.attribs.endAngle += 2 * Math.PI;
+    } 
+    const angleStep = (arc.attribs.endAngle - arc.attribs.startAngle) / stepCount;
     this.context.beginPath();
-    this.context.arc(
-      center.x,
-      center.y,
-      rad,
-      arc.attribs.startAngle,
-      arc.attribs.endAngle,
-      false
+
+    // Calculate the first point and move to it
+    const startAngle = arc.attribs.startAngle;
+    const p1 = new vec3d(
+        arc.vertices[0].x + arc.attribs.radius * Math.cos(startAngle),
+        arc.vertices[0].y + arc.attribs.radius * Math.sin(startAngle),
+        arc.vertices[0].z
     );
+    const p1Rotated = p1.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
+    const p1OnScreen = p1Rotated.projectToScreen(
+        Camera,
+        this.canvas.width,
+        this.canvas.height
+    );
+    this.context.moveTo(p1OnScreen.x, p1OnScreen.y);
+
+    // Draw lines to the rest of the points
+    for (let i = 1; i < stepCount; i++) {
+        const angle = arc.attribs.startAngle + angleStep * i;
+        const p2 = new vec3d(
+            arc.vertices[0].x + arc.attribs.radius * Math.cos(angle),
+            arc.vertices[0].y + arc.attribs.radius * Math.sin(angle),
+            arc.vertices[0].z
+        );
+        const p2Rotated = p2.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
+        const p2OnScreen = p2Rotated.projectToScreen(
+            Camera,
+            this.canvas.width,
+            this.canvas.height
+        );
+        this.context.lineTo(p2OnScreen.x, p2OnScreen.y);
+    }
     this.context.stroke();
     this.context.closePath();
   }
@@ -455,6 +490,11 @@ class Scene {
   static setEntities(ents) {
     Scene.entities = ents;
     Scene.findCentroid();
+    Camera.setPos(
+      Scene.centroidOfEnts.x,
+      Scene.centroidOfEnts.y,
+      Scene.centroidOfEnts.z - .5
+    );
     console.log(Scene.centroidOfEnts)
   }
   static addEntity(ent) {
@@ -475,6 +515,12 @@ class Scene {
     function renderEnt(e) {
       switch (e.type) {
         case "LWPOLYLINE": {
+          for (let i=0; i<e.vertices.length; i++) {
+            renderEnt(e.vertices[i]);
+          }
+          break;
+        }
+        case "POLYLINE": {
           for (let i=0; i<e.vertices.length; i++) {
             renderEnt(e.vertices[i]);
           }
@@ -543,7 +589,6 @@ class Scene {
           break
         }
       }
-      this.initialPosition.x = 0; this.initialPosition.y = 0;
     }
     static mouseMove(e) {
       if (this.active.left === true) {
@@ -557,8 +602,9 @@ class Scene {
       }
       if (this.active.middle === true) {
         let deltaX = (this.initialPosition.x - e.clientX);
+        let deltaY = (this.initialPosition.y - e.clientY);
         const scalar = clamp(.0001 / Camera.pos.magnitude(), .01, .005);
-        Camera.rotate(deltaX * scalar,0,0);
+        Camera.rotate(0, deltaX * scalar,0,0)
         this.initialPosition.x = e.clientX;
         this.initialPosition.y = e.clientY;
         setTimeout(null, 20);

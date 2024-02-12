@@ -13,6 +13,7 @@ function handleDXF(fileString) {
     const parser = new DxfParser();
     const dxf = parser.parseSync(fileString);
     const entities = dxf.entities;
+    console.log(entities);
     const parsed = parseEntities(entities);
     console.log(parsed);
     addEntitiesToScene(parsed);
@@ -133,6 +134,7 @@ function parse3DLWPolyline(polyline) {
 
 function parsePolyline(polyline) {
     const newPolyline = [];
+    let faceBeginning = 0;
     for (let i = 0; i < polyline.vertices.length - 1; i++) {
         const v1 = convertToVec3D(polyline.vertices[i]);
         let v2 = polyline.vertices[i+1];
@@ -140,6 +142,7 @@ function parsePolyline(polyline) {
             if (polyline.shape === true) {
                 v2 = polyline.vertices[0];
             } else {
+                faceBeginning = i;
                 break
             }
         } 
@@ -149,6 +152,10 @@ function parsePolyline(polyline) {
         v2 = convertToVec3D(v2);
         const newLine = new entity3D("LINE", [v1,v2])
         newPolyline.push(newLine);
+    }
+    for (let i = faceBeginning; i < polyline.vertices.length - 1; i++) {
+        const curVert = polyline.vertices[i];
+        //find way to loop through all faces;
     }
     const result = new entity3D("POLYLINE",newPolyline)
     result.normalizeToWorld();
@@ -199,6 +206,9 @@ function convertToVec2D(object) {
     return new vec2d(object.x, object.y);
 }
 function convertToVec3D(object, elevation) {
+    if (!elevation) {
+        return new vec3d(object.x, object.y, object.z);
+    }
     return new vec3d(object.x, object.y, elevation);
 }
 function applyExtrusion(point, extrusion) {
