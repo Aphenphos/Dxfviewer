@@ -142,20 +142,49 @@ function parsePolyline(polyline) {
             if (polyline.shape === true) {
                 v2 = polyline.vertices[0];
             } else {
-                faceBeginning = i;
                 break
             }
         } 
-        if ((v1.x === 0 && v1.y === 0 && v1.z === 0 ) || (v2.x === 0 && v2.y === 0 && v2.z === 0)) {
+        if (v1.x === 0 && v1.y === 0 && v1.z === 0) {
+            console.log("v1",i);
+            faceBeginning = i;
+            break;
+        }
+        if (v2.x === 0 && v2.y === 0 && v2.z === 0){
+            console.log("v2",i);
+            faceBeginning = i+1;
             break;
         }
         v2 = convertToVec3D(v2);
         const newLine = new entity3D("LINE", [v1,v2])
         newPolyline.push(newLine);
     }
+    let faceArr = []
+    const faceMap = {
+        'faceA': (face) => faceArr.push(face),        
+        'faceB': (face) => faceArr.push(face),
+        'faceC': (face) => faceArr.push(face),
+        'faceD': (face) => faceArr.push(face),
+    }
     for (let i = faceBeginning; i < polyline.vertices.length - 1; i++) {
         const curVert = polyline.vertices[i];
-        //find way to loop through all faces;
+        for (let key in curVert) {
+            if (faceMap[key]) {
+                faceMap[key](curVert[key]);
+            }
+        }
+        for (let k=0; k<faceArr.length-1; k++) {
+            let j = k+1;
+            let i1 = faceArr[k] > 0 ? faceArr[k] : polyline.vertices.length + faceArr[k];
+            let i2 = faceArr[j] > 0 ? faceArr[j]: polyline.vertices.length + faceArr[j];
+            if (faceArr[k] >= 0 && faceArr[j] >= 0) {
+                const v1 = convertToVec3D(polyline.vertices[i1-1]);
+                const v2 = convertToVec3D(polyline.vertices[i2-1]); 
+                const newLine = new entity3D("LINE", [v1,v2]);
+                newPolyline.push(newLine);
+            }
+        }
+        faceArr = [];
     }
     const result = new entity3D("POLYLINE",newPolyline)
     result.normalizeToWorld();
@@ -255,134 +284,5 @@ function applyExtrusion(point, extrusion) {
     );
 }
 
-    // let toShapes = [];
-    // let used = new Set();
-    // let shape = [null];
-    // let length = coords.length;
-    // function isClose(p1, p2) {
-        //     return Math.abs(p1.x - p2.x) < Number.EPSILON && Math.abs(p1.y - p2.y) < Number.EPSILON;
-        // }
-        
-        // function findNextEnt() {
-            //     for (let j = 0; j < length; j++) {
-                //         if (used.has(j) || coords[j].start().type === 'CIRCLE') {
-                    //             continue;
-                    //         }
-                    //         if (isClose(coords[j].start(), shape[shape.length - 1].end()) || isClose(coords[j].end(), shape[shape.length - 1].end()) ||
-                    //         isClose(coords[j].start(), shape[shape.length - 1].start()) || isClose(coords[j].end(), shape[shape.length - 1].start())) {
-//             used.add(j);
-//             shape.push(coords[j]);
-//             return true;
-//         }
-//     }
-//     console.log("Could not find next Entity.");
-//     process.exit(1);
-// }
 
-// let i = 0;
-// while (i < length) {
-    //     if (coords[i].start().type === 'CIRCLE') {
-        //         toShapes.push(new Shape([coords[i]])); // assuming Shape is a defined class
-        //         used.add(i);
-        //         i++;
-        //         continue;
-        //     }
-        //     if (shape[0] === null) {
-            //         shape[0] = coords[i];
-            //         used.add(i);
-            //         i++;
-            //     }
-            //     findNextEnt();
-            //     i++;
-            //     if (shape.length > 2) {
-                //         if (isClose(shape[0].start(), shape[shape.length - 1].end()) || isClose(shape[0].end(), shape[shape.length - 1].end()) ||
-                //             isClose(shape[0].start(), shape[shape.length - 1].start()) || isClose(shape[0].end(), shape[shape.length - 1].start())) {
-//             console.log("shape completed");
-//             toShapes.push(new Shape(shape)); // assuming Shape is a defined class
-//             shape = [null];
-//             continue;
-//         }
-//     }
-//     if (used.size === length) {
-    //         break;
-    //     }
-// }
-
-
-// Potential parsing function i translated from my python parser;
-// function findShapes(entities) {
-//     const usedEnts = new Set();
-//     const entCount = entities.length;
-//     const finalShapes = [];
-//     let currentShape = [null];
-//     function isClose(p1,p2) {
-//         return Math.abs(p1.x - p2.x) < .001 && Math.abs(p1.y - p2.y) < .001;
-//     };
-
-//     function findNextEnt() {
-//         for (let j = 0; j < entCount; j++) {
-//             if (usedEnts.has(j) || entities[j].type === "DIMENSION") {
-//                 continue; 
-//             }
-//             if (entities[j].type === "CIRCLE" || entities[j].shape === true) {
-//                 usedEnts.add(j);
-//                 continue;
-//             } 
-//             if (isClose(entities[j].vertices[0], last(currentShape[currentShape.length - 1].vertices)) ||
-//                 isClose(last(entities[j].vertices), last(currentShape[currentShape.length - 1].vertices)) ||
-//                 isClose(last(entities[j].vertices), currentShape[currentShape.length - 1].vertices[0]) || 
-//                 isClose(entities[j].vertices[0], currentShape[currentShape.length - 1].vertices[0])) {
-//                 usedEnts.add(j);
-//                 currentShape.push(entities[j]);
-//                 return;
-//             }
-//         }
-//         //add support for incomplete shapes HERE
-//         console.error("Could not find next Entity");
-//     }
-
-//     let i = 0;
-//     while (i < entCount) {
-//         if (usedEnts.has(i)) {
-//             i++;
-//             continue;
-//         }
-//         if (entities[i].type === "CIRCLE" || entities[i].shape === true) {
-//             finalShapes.push(new shape([entities[i]]));
-//             usedEnts.add(i);
-//             i++;
-//             continue;
-//         }
-//         if (entities[i].type === "ARC") {
-//             const verts = arcToArcWithBulge(entities[i]);
-//             const newArc = {
-//                 vertices: verts,
-//                 type: "BARC"
-//             }
-//             entities[i] = newArc;
-//         };
-
-//         const currentEnt = entities[i];
-//         if (currentShape[0] === null) {
-//             currentShape[0] = currentEnt;
-//             usedEnts.add(i);
-//             i++;
-//         }
-//         findNextEnt();
-//         i++;
-
-//         if (currentShape.length > 2) {
-//             if (isClose(currentShape[0].vertices[0], last(currentShape[currentShape.length - 1].vertices)) || 
-//                 isClose(currentShape[0].vertices[0], currentShape[currentShape.length - 1].vertices[0]) || 
-//                 isClose(last(currentShape[0].vertices), currentShape[currentShape.length - 1].vertices[0]) || 
-//                 isClose(last(currentShape[0].vertices), last(currentShape[currentShape.length - 1].vertices))) {
-//                 finalShapes.push(new shape(currentShape));
-
-//                 currentShape = [null];
-//                 continue;
-//             }
-//         }
-//     }
-//     return finalShapes;
-// }
 export { handleDXF }
