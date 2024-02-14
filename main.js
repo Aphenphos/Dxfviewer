@@ -1,7 +1,11 @@
 import { handleDXF } from "./src/parse";
-import { initScene } from "./src/render";
+import { MouseInput, Scene } from "./src/utils";
 
-initScene();
+
+function initScene() {
+  Scene.init()
+  MouseInput.init();
+}
 const inFile = document.getElementById("file-in");
 inFile.addEventListener("change", handleFileChange, false);
 
@@ -15,5 +19,7 @@ function handleFileChange() {
 }
 
 function handleFileLoad(fileString) {
-    handleDXF(fileString);
+  handleDXF(fileString);
 }
+
+initScene();

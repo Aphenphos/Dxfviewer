@@ -1,8 +1,7 @@
 import { DxfParser } from 'dxf-parser';
 import { outFile, bulgeToArc, vec2d, vec3d, entity2D, entity3D } from './utils';
 import { downloadFile } from './output';
-import {addEntitiesToScene} from './render'
-
+import { Scene } from './utils';
 //Maximum coordinate for x and y so for 1000 inches we use 500 so minX = -500 and max is 500;
 
 //yes this is fairly slow but is only done one time on file load and
@@ -16,7 +15,7 @@ function handleDXF(fileString) {
     console.log(entities);
     const parsed = parseEntities(entities);
     console.log(parsed);
-    addEntitiesToScene(parsed);
+    Scene.setEntities(parsed);
 }
 
 

@@ -82,8 +82,11 @@ class vec2d {
     this.y += translation.y;
   }
   unNormalize(min, max) {
-    this.x = this.x * (max.x - min.x) + min.x;
-    this.y = this.y * (max.y - min.y) + min.y;
+    return new vec3d(
+      this.x * (max.x - min.x) + min.x,
+      this.y * (max.y - min.y) + min.y,
+      Camera.pos.z
+    );
   }
   normalizeToWorld() {
     this.x =
@@ -109,6 +112,35 @@ class vec2d {
       (pointProjected.y + 1) * 0.5 * screenH
     );
     return pointOnScreen;
+  }
+  screenToWorld(camera, screenW, screenH) {
+    const pointProjected = new vec2d(
+      (this.x / screenW) * 2 - 1,
+      (this.y / screenH) * 2 - 1
+    );
+
+    const aspectRatio = screenW / screenH;
+    const distanceRatio = 1 / Math.tan(camera.fov / 2);
+
+    const depth = 1;
+    const pointTranslated = new vec3d(
+      pointProjected.x * depth,
+      pointProjected.y * depth / (distanceRatio * aspectRatio),
+      depth 
+    )
+    // const pointRotated = pointTranslated.rotateAboutPoint(
+    //   new vec3d(
+    //     -Camera.rotation.x,
+    //     -Camera.rotation.y,
+    //     -Camera.rotation.z,
+    //     ), Scene.centroidOfEnts
+    //   )
+    const pointInWorld = new vec3d(
+      pointTranslated.x + camera.pos.x,
+      pointTranslated.y + camera.pos.y,
+      pointTranslated.z + camera.pos.z
+    )
+    return pointInWorld;
   }
   rotateAboutPoint(rotation, point) {
     const qx = Math.sin(rotation.x / 2);
@@ -392,11 +424,21 @@ class Renderer {
       this.canvas.width,
       this.canvas.height
     );
+    Renderer.putPoint(p1OnScreen);
+    Renderer.putPoint(p2OnScreen);
     this.context.beginPath();
     this.context.moveTo(p1OnScreen.x, p1OnScreen.y);
     this.context.lineTo(p2OnScreen.x, p2OnScreen.y);
     this.context.stroke();
     this.context.closePath();
+  }
+  static putPoint(p, color="red") {
+    this.context.fillStyle = color;
+    this.context.fillRect(p.x,p.y,5,5);
+  }
+  static drawPoint(point) {
+    const pointOnScreen = point.vertices[0].projectToScreen(Camera, this.canvas.width, this.canvas.height);
+    Renderer.putPoint(pointOnScreen);
   }
   static drawArc(arc) {
     const stepCount = 100;
@@ -420,31 +462,49 @@ class Renderer {
         this.canvas.height
     );
     this.context.moveTo(p1OnScreen.x, p1OnScreen.y);
-
     // Draw lines to the rest of the points
-    for (let i = 1; i < stepCount; i++) {
-        const angle = arc.attribs.startAngle + angleStep * i;
-        const p2 = new vec3d(
-            arc.vertices[0].x + arc.attribs.radius * Math.cos(angle),
-            arc.vertices[0].y + arc.attribs.radius * Math.sin(angle),
-            arc.vertices[0].z
+    for (let i = 1; i <= stepCount; i++) {
+      const angle = arc.attribs.startAngle + angleStep * i;
+      const p2 = new vec3d(
+        arc.vertices[0].x + arc.attribs.radius * Math.cos(angle),
+        arc.vertices[0].y + arc.attribs.radius * Math.sin(angle),
+        arc.vertices[0].z
         );
         const p2Rotated = p2.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
         const p2OnScreen = p2Rotated.projectToScreen(
-            Camera,
-            this.canvas.width,
-            this.canvas.height
-        );
-        this.context.lineTo(p2OnScreen.x, p2OnScreen.y);
-    }
+          Camera,
+          this.canvas.width,
+          this.canvas.height
+          );
+          this.context.lineTo(p2OnScreen.x, p2OnScreen.y);
+        }
     this.context.stroke();
     this.context.closePath();
+    const p2 = new vec3d(
+      arc.vertices[0].x + arc.attribs.radius * Math.cos(arc.attribs.endAngle),
+      arc.vertices[0].y + arc.attribs.radius * Math.sin(arc.attribs.endAngle),
+      arc.vertices[0].z
+  );
+    const p2Rotated = p2.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
+    const p2OnScreen = p2Rotated.projectToScreen(
+        Camera,
+        this.canvas.width,
+        this.canvas.height
+    );
+    Renderer.putPoint(p1OnScreen);
+    Renderer.putPoint(p2OnScreen);
   }
+
 }
 
 class Scene {
   static entities = [];
   static centroidOfEnts = new vec3d(0,0,0);
+  static init() {
+    window.addEventListener("resize", () => { Scene.update(true) }, false);
+    Scene.update(true);
+    MouseInput.init();
+  }
   static findCentroid() {
     let vertCnt = 0;
     Scene.centroidOfEnts = new vec3d(0,0,0);
@@ -499,9 +559,7 @@ class Scene {
   }
   static addEntity(ent) {
     this.entities.push(ent);
-  }
-  static wipeEntities() {
-    this.entities = [];
+    Scene.update(false);
   }
   static update(canvasChange) {
     if (canvasChange) {
@@ -534,6 +592,10 @@ class Scene {
           Renderer.drawArc(e);
           break;
         }
+        case "POINT": {
+          Renderer.drawPoint(e);
+          break;
+        }
       }
     }
 
@@ -551,7 +613,6 @@ class Scene {
       right: false
     };
     static initialPosition = new vec2d(0,0);
-
     static init() {
       document.addEventListener("mousedown", this.mouseDown.bind(this))
       document.addEventListener("mouseup", this.mouseUp.bind(this))
@@ -570,10 +631,12 @@ class Scene {
         case (0): {
           this.active.left = true;
           this.initialPosition.x = down.clientX; this.initialPosition.y = down.clientY;
+          this.handleClick();
           break;
         }
         case (1): {
           this.active.middle = true;
+          this.initialPosition.x = down.clientX; this.initialPosition.y = down.clientY;
           break;
         }
       }
@@ -591,20 +654,21 @@ class Scene {
       }
     }
     static mouseMove(e) {
-      if (this.active.left === true) {
+      if (this.active.left === true && this.timeHeld) {
         let deltaX = (this.initialPosition.x - e.clientX);
         let deltaY = (this.initialPosition.y - e.clientY);
         const scalar = clamp(.0001 / Camera.pos.magnitude(), .00001, .005);
         Camera.translate(deltaX * scalar, deltaY * scalar, 0);
         this.initialPosition.x = e.clientX;
         this.initialPosition.y = e.clientY;
+        this.timeHeld +=20;
         setTimeout(null, 20);
       }
       if (this.active.middle === true) {
         let deltaX = (this.initialPosition.x - e.clientX);
         let deltaY = (this.initialPosition.y - e.clientY);
         const scalar = clamp(.0001 / Camera.pos.magnitude(), .01, .005);
-        Camera.rotate(0, deltaX * scalar,0,0)
+        Camera.rotate(-(deltaY * scalar), deltaX * scalar,0,0)
         this.initialPosition.x = e.clientX;
         this.initialPosition.y = e.clientY;
         setTimeout(null, 20);
@@ -616,7 +680,14 @@ class Scene {
     static scrollUp() {
       Camera.translate(0,0,.01);
     }
-
+    static handleClick(button) {
+      const inWorld = this.initialPosition.screenToWorld(Camera, Renderer.canvas.width, Renderer.canvas.height) 
+      const newEnt = new entity3D(
+        "POINT",
+        [inWorld],
+      )
+      Scene.addEntity(newEnt);
+    }
 }
 
 class outFile {
