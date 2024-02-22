@@ -3,7 +3,7 @@
 //no class methods because afaik it slows things down massively as your
 
 //object count increases
-const WorldSpaceSize = 200;
+const WorldSpaceSize = 100;
 const scaleFactor = 10.0;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -73,9 +73,10 @@ class vec2d {
     this.x = this.x * scaleFactor;
     this.y = this.y * scaleFactor;
   }
-  normalize(min, max) {
-    this.x = (2 * (this.x - min.x)) / (max.x - min.x) - 1;
-    this.y = (2 * (this.y - min.y)) / (max.y - min.y) - 1;
+  normalize() {
+    const magnitude = this.magnitude();
+    this.x = this.x / magnitude;
+    this.y = this.y / magnitude;
   }
   translate(translation) {
     this.x += translation.x;
@@ -87,6 +88,9 @@ class vec2d {
       this.y * (max.y - min.y) + min.y,
       Camera.pos.z
     );
+  }
+  magnitude() {
+    return Math.sqrt(this.x*this.x + this.y*this.y)
   }
   normalizeToWorld() {
     this.x =
@@ -114,33 +118,34 @@ class vec2d {
     return pointOnScreen;
   }
   screenToWorld(camera, screenW, screenH) {
-    const pointProjected = new vec2d(
+    const pointFromScreen = new vec2d(
       (this.x / screenW) * 2 - 1,
       (this.y / screenH) * 2 - 1
     );
+    const distanceRatio =  Math.tan(camera.fov / 2);
+    const aspectRatio = screenW / screenH
 
-    const aspectRatio = screenW / screenH;
-    const distanceRatio = 1 / Math.tan(camera.fov / 2);
-
-    const depth = 1;
-    const pointTranslated = new vec3d(
-      pointProjected.x * depth,
-      pointProjected.y * depth / (distanceRatio * aspectRatio),
-      depth 
+    const pointUnProjected = new vec3d(
+      pointFromScreen.x * distanceRatio * aspectRatio,
+      pointFromScreen.y * distanceRatio,
+      1
+    );
+    pointUnProjected.translate(
+      new vec3d(
+        -camera.pos.x,
+        -camera.pos.y,
+        -camera.pos.z
+        )
+      )
+    const pointRotated = pointUnProjected.rotateAboutPoint(
+      new vec3d(
+        -camera.rotation.x,
+        -camera.rotation.y,
+        -camera.rotation.z
+      ),
+      Scene.centroidOfEnts
     )
-    // const pointRotated = pointTranslated.rotateAboutPoint(
-    //   new vec3d(
-    //     -Camera.rotation.x,
-    //     -Camera.rotation.y,
-    //     -Camera.rotation.z,
-    //     ), Scene.centroidOfEnts
-    //   )
-    const pointInWorld = new vec3d(
-      pointTranslated.x + camera.pos.x,
-      pointTranslated.y + camera.pos.y,
-      pointTranslated.z + camera.pos.z
-    )
-    return pointInWorld;
+    return pointRotated;
   }
   rotateAboutPoint(rotation, point) {
     const qx = Math.sin(rotation.x / 2);
@@ -437,7 +442,8 @@ class Renderer {
     this.context.fillRect(p.x,p.y,5,5);
   }
   static drawPoint(point) {
-    const pointOnScreen = point.vertices[0].projectToScreen(Camera, this.canvas.width, this.canvas.height);
+    const pointRotated = point.vertices[0].rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
+    const pointOnScreen = pointRotated.projectToScreen(Camera, this.canvas.width, this.canvas.height);
     Renderer.putPoint(pointOnScreen);
   }
   static drawArc(arc) {
@@ -683,9 +689,14 @@ class Scene {
     static handleClick(button) {
       const inWorld = this.initialPosition.screenToWorld(Camera, Renderer.canvas.width, Renderer.canvas.height) 
       const newEnt = new entity3D(
-        "POINT",
-        [inWorld],
+        "LINE",
+        [new vec3d(
+          Camera.pos.x,
+          Camera.pos.y,
+          Camera.pos.z
+        ), inWorld],
       )
+      console.log(newEnt)
       Scene.addEntity(newEnt);
     }
 }
