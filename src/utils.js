@@ -103,8 +103,7 @@ class vec2d {
       this.x - camera.pos.x,
       this.y - camera.pos.y,
       this.z - camera.pos.z
-    );
-    pointTranslated.rotateAboutPoint(camera.rotation, Scene.centroidOfEnts);
+      );
     const distanceRatio = 1 / Math.tan(camera.fov / 2);
     const aspectRatio = screenW / screenH;
     const pointProjected = new vec2d(
@@ -122,19 +121,19 @@ class vec2d {
       (this.x / screenW) * 2 - 1,
       (this.y / screenH) * 2 - 1
     );
-    const distanceRatio =  Math.tan(camera.fov / 2);
+    const distanceRatio =   Math.tan(camera.fov / 2);
     const aspectRatio = screenW / screenH
 
     const pointUnProjected = new vec3d(
-      pointFromScreen.x * distanceRatio * aspectRatio,
-      pointFromScreen.y * distanceRatio,
+      pointFromScreen.x * distanceRatio,
+      pointFromScreen.y * distanceRatio / aspectRatio,
       1
     );
     pointUnProjected.translate(
       new vec3d(
-        -camera.pos.x,
-        -camera.pos.y,
-        -camera.pos.z
+        camera.pos.x,
+        camera.pos.y,
+        camera.pos.z
         )
       )
     const pointRotated = pointUnProjected.rotateAboutPoint(
@@ -142,9 +141,9 @@ class vec2d {
         -camera.rotation.x,
         -camera.rotation.y,
         -camera.rotation.z
-      ),
-      Scene.centroidOfEnts
-    )
+        ),
+        Scene.centroidOfEnts
+      )
     return pointRotated;
   }
   rotateAboutPoint(rotation, point) {
@@ -636,7 +635,10 @@ class Scene {
       switch (down.button) {
         case (0): {
           this.active.left = true;
-          this.initialPosition.x = down.clientX; this.initialPosition.y = down.clientY;
+          const rect = Renderer.canvas.getBoundingClientRect()
+          const realX = down.clientX - rect.left;
+          const realY = down.clientY - rect.top;
+          this.initialPosition.x = realX; this.initialPosition.y = realY;
           this.handleClick();
           break;
         }
@@ -688,13 +690,17 @@ class Scene {
     }
     static handleClick(button) {
       const inWorld = this.initialPosition.screenToWorld(Camera, Renderer.canvas.width, Renderer.canvas.height) 
+      const cameraPos = Camera.pos.rotateAboutPoint(
+        new vec3d(
+          -Camera.rotation.x,
+          -Camera.rotation.y,
+          -Camera.rotation.z
+        ), Scene.centroidOfEnts);
+      
       const newEnt = new entity3D(
         "LINE",
-        [new vec3d(
-          Camera.pos.x,
-          Camera.pos.y,
-          Camera.pos.z
-        ), inWorld],
+        [ cameraPos
+        , inWorld],
       )
       console.log(newEnt)
       Scene.addEntity(newEnt);
