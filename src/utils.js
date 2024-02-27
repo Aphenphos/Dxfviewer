@@ -300,6 +300,11 @@ class vec3d {
       this.x * v.y - this.y * v.x
     );
   }
+  dotProduct(v) {
+    return (
+      this.x*v.x + this.y*v.y + this.z*v.z
+    );
+  }
   set(x,y,z) {
     this.x = x; this.y = y; this.z = z;
   }
@@ -402,6 +407,19 @@ class Camera {
   static getPos() {
     return this.pos;
   }
+  static isInView(p) {
+    const d = new vec3d(
+      p.x - this.pos.x,
+      p.y - this.pos.y,
+      p.z - this.pos.z
+    );
+    d.normalize();
+    const dp = d.dotProduct(this.rotation);
+    const fovInRad = this.fov * (Math.PI / 180);
+    const cosFov = Math.cos(fovInRad / 2);
+    
+    return dp > cosFov;
+  }
 }
 //0 for 2d  | 1 for 3d
 class Renderer {
@@ -427,8 +445,8 @@ class Renderer {
       Camera,
       this.canvas.width,
       this.canvas.height
-    );
-    Renderer.putPoint(p1OnScreen);
+      );
+      Renderer.putPoint(p1OnScreen);
     Renderer.putPoint(p2OnScreen);
     this.context.beginPath();
     this.context.moveTo(p1OnScreen.x, p1OnScreen.y);
@@ -499,7 +517,6 @@ class Renderer {
     Renderer.putPoint(p1OnScreen);
     Renderer.putPoint(p2OnScreen);
   }
-
 }
 
 class Scene {
@@ -549,7 +566,7 @@ class Scene {
     Scene.centroidOfEnts.z = Scene.centroidOfEnts.z / vertCnt;
     Camera.pos.x = this.centroidOfEnts.x;
     Camera.pos.y = this.centroidOfEnts.y;
-    Camera.pos.z = this.centroidOfEnts.z - 1;
+    Camera.pos.z = this.centroidOfEnts.z - .5;
     return;
   }
   static setEntities(ents) {
@@ -560,7 +577,6 @@ class Scene {
       Scene.centroidOfEnts.y,
       Scene.centroidOfEnts.z - .5
     );
-    console.log(Scene.centroidOfEnts)
   }
   static addEntity(ent) {
     this.entities.push(ent);
@@ -618,6 +634,7 @@ class Scene {
       right: false
     };
     static initialPosition = new vec2d(0,0);
+    static timeMoving = 11;
     static init() {
       document.addEventListener("mousedown", this.mouseDown.bind(this))
       document.addEventListener("mouseup", this.mouseUp.bind(this))
@@ -639,7 +656,7 @@ class Scene {
           const realX = down.clientX - rect.left;
           const realY = down.clientY - rect.top;
           this.initialPosition.x = realX; this.initialPosition.y = realY;
-          this.handleClick();
+          this.timeMoving = 0;
           break;
         }
         case (1): {
@@ -652,7 +669,11 @@ class Scene {
     static mouseUp(up) {
       switch (up.button) {
         case (0): {
+          if (this.timeMoving < 10) {
+            this.handleClick();
+          }
           this.active.left = false;
+          this.timeMoving = 11;
           break;
         }
         case (1): {
@@ -662,14 +683,14 @@ class Scene {
       }
     }
     static mouseMove(e) {
-      if (this.active.left === true && this.timeHeld) {
+      this.timeMoving++;
+      if (this.active.left === true && this.timeMoving > 10) {
         let deltaX = (this.initialPosition.x - e.clientX);
         let deltaY = (this.initialPosition.y - e.clientY);
         const scalar = clamp(.0001 / Camera.pos.magnitude(), .00001, .005);
         Camera.translate(deltaX * scalar, deltaY * scalar, 0);
         this.initialPosition.x = e.clientX;
         this.initialPosition.y = e.clientY;
-        this.timeHeld +=20;
         setTimeout(null, 20);
       }
       if (this.active.middle === true) {
