@@ -316,6 +316,9 @@ class vec3d {
   }
   normalize() {
     const magnitude = this.magnitude();
+    if (magnitude === 0) {
+      return;
+    }
     this.x = this.x / magnitude;
     this.y = this.y / magnitude;
     this.z = this.z / magnitude;
@@ -409,15 +412,16 @@ class Camera {
   }
   static isInView(p) {
     const d = new vec3d(
-      p.x - this.pos.x,
-      p.y - this.pos.y,
-      p.z - this.pos.z
+      this.pos.x - p.x,
+      this.pos.y - p.y,
+      this.pos.z - p.z
     );
     d.normalize();
-    const dp = d.dotProduct(this.rotation);
+    const dp = d.dotProduct(new vec3d(
+      0,0,-1
+    ));
     const fovInRad = this.fov * (Math.PI / 180);
-    const cosFov = Math.cos(fovInRad / 2);
-    
+    const cosFov = Math.cos(fovInRad);
     return dp > cosFov;
   }
 }
@@ -436,23 +440,25 @@ class Renderer {
   static drawLine(p1, p2) {
     const p1Rotated = p1.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
     const p2Rotated = p2.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
-    const p1OnScreen = p1Rotated.projectToScreen(
-      Camera,
-      this.canvas.width,
-      this.canvas.height
-    );
-    const p2OnScreen = p2Rotated.projectToScreen(
-      Camera,
-      this.canvas.width,
-      this.canvas.height
+    if (Camera.isInView(p1Rotated) && Camera.isInView(p2Rotated)) {
+      const p1OnScreen = p1Rotated.projectToScreen(
+        Camera,
+        this.canvas.width,
+        this.canvas.height
       );
-      Renderer.putPoint(p1OnScreen);
-    Renderer.putPoint(p2OnScreen);
-    this.context.beginPath();
-    this.context.moveTo(p1OnScreen.x, p1OnScreen.y);
-    this.context.lineTo(p2OnScreen.x, p2OnScreen.y);
-    this.context.stroke();
-    this.context.closePath();
+      const p2OnScreen = p2Rotated.projectToScreen(
+        Camera,
+        this.canvas.width,
+        this.canvas.height
+        );
+        Renderer.putPoint(p1OnScreen);
+        Renderer.putPoint(p2OnScreen);
+        this.context.beginPath();
+        this.context.moveTo(p1OnScreen.x, p1OnScreen.y);
+        this.context.lineTo(p2OnScreen.x, p2OnScreen.y);
+        this.context.stroke();
+        this.context.closePath();
+    }
   }
   static putPoint(p, color="red") {
     this.context.fillStyle = color;
@@ -606,6 +612,7 @@ class Scene {
           break;
         }
         case "LINE": {
+    
           Renderer.drawLine(e.vertices[0], e.vertices[1]);
           break;
         }
