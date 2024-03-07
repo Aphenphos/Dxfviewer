@@ -7,23 +7,15 @@ TO ADD -
     - Add a way to render numbers and letters.
     - Basic Shape dimensions
     - Shape nester
-    - 3D support
     - Other file types (STP, STL, ETC)
     - File Converter (DWG -> STP etc) Probably use some sort of IR for this.
     - add swizzling
     
-
-
-
     // If none of the corners are in view, the object can be culled
     return false;
 
 
 Camera rotation is messed up need to fix
 
-Rotation is called trackball rotation,
-
-    get where the camera is looking and rotate around that point.
-    find centeroid of all objects
-        rotate about the centeroid
-        this removes all dependant relations aka (shapes)
+restructure g to a simple list of points where each point has an owner
+massive optomization and simplifies things

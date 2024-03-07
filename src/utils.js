@@ -461,8 +461,14 @@ class Renderer {
     }
   }
   static putPoint(p, color="red") {
+    const size = 4
     this.context.fillStyle = color;
-    this.context.fillRect(p.x,p.y,5,5);
+    this.context.fillRect(p.x,p.y,1,1);
+    this.context.fillRect(p.x-1,p.y-1,size,size);
+    this.context.fillRect(p.x+1,p.y+1,size,size);
+    this.context.fillRect(p.x-1,p.y+1,size,size);
+    this.context.fillRect(p.x+1,p.y-1,size,size);
+    this.context.fillRect(p.x+1,p.y-1,size,size);
   }
   static drawPoint(point) {
     const pointRotated = point.vertices[0].rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
@@ -485,6 +491,9 @@ class Renderer {
         arc.vertices[0].z
     );
     const p1Rotated = p1.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
+    if (!Camera.isInView(p1Rotated)) {
+      return;
+    }
     const p1OnScreen = p1Rotated.projectToScreen(
         Camera,
         this.canvas.width,
@@ -500,6 +509,9 @@ class Renderer {
         arc.vertices[0].z
         );
         const p2Rotated = p2.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
+        if (!Camera.isInView(p2Rotated)) {
+          return;
+        }
         const p2OnScreen = p2Rotated.projectToScreen(
           Camera,
           this.canvas.width,
