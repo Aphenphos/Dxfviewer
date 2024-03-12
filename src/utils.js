@@ -758,6 +758,44 @@ class outFile {
   }
 }
 
+class vertex {
+  pos; // a vec3 or 2
+  parent; // a entity or none
+  inView; // way to reduce computations when user clicks 
+  constructor(pos, owner = null, inView = false) {
+    this.pos = pos;
+    this.owner = owner;
+    this.inView = inView;
+  }
+}
+
+class entity {
+  static id = 0;
+  vertices; // eg 2 points for a line and x points for an arc
+  type;
+  attribs; //Things like radius, start/end angles etc used for grabbing dimensions only.
+  length;
+  isShape;
+  parent;
+  constructor(type, vertices = [], attribs = {}, rad = null, len = null) {
+    this.type = type;
+    this.vertices = vertices;
+    this.attribs = attribs;
+    this.radius = rad;
+    this.length = len;
+    this.id = entity.id++;
+  }
+}
+
+//an entity composed of other entities.
+class complexEntity {
+  children;
+  type;
+  length;
+  boundingBox;
+  isShape;
+}
+
 export {
   Renderer,
   Camera,

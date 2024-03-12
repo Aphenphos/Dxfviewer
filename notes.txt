@@ -11,11 +11,5 @@ TO ADD -
     - File Converter (DWG -> STP etc) Probably use some sort of IR for this.
     - add swizzling
     
-    // If none of the corners are in view, the object can be culled
-    return false;
-
-
-Camera rotation is messed up need to fix
-
 restructure g to a simple list of points where each point has an owner
 massive optomization and simplifies things
