@@ -1,5 +1,5 @@
 import { DxfParser } from 'dxf-parser';
-import { outFile, bulgeToArc, vec2d, vec3d, entity2D, entity3D } from './utils';
+import { outFile, bulgeToArc, vec2d, vec3d, entity } from './utils';
 import { downloadFile } from './output';
 import { Scene } from './utils';
 //Maximum coordinate for x and y so for 1000 inches we use 500 so minX = -500 and max is 500;
@@ -63,6 +63,7 @@ function parseEntities(ents) {
 
 function parse2DLWPolyLine(polyline) {
     const newPolyline = []
+    const result = new entity("LWPOLYLINE")
     for (let i=0; i < polyline.vertices.length; i++) {
         const v1 = polyline.vertices[i];
         let v2 = polyline.vertices[i+1];
@@ -80,17 +81,20 @@ function parse2DLWPolyLine(polyline) {
             const newArc = bulgeToArc(v1, v2);
             newPolyline.push(newArc);
         } else {
-            const newLine = new entity2D("LINE", [convertToVec2D(v1),convertToVec2D(v2)])
+            const newLine = new entity("LINE", [convertToVec2D(v1),convertToVec2D(v2)])
+            newLine.parent = result;
             newPolyline.push(newLine);
         }
     }
-    const result = new entity2D("LWPOLYLINE", newPolyline)
+    result.children = newPolyline
+    result.parent = true;
     result.normalizeToWorld();
     return result;
 }
 function parse3DLWPolyline(polyline) {
     const newPolyline = [];
     let extrusion = null;
+    const result = new entity("LWPOLYLINE")
     if (polyline.extrusionDirectionX === 0 || polyline.extrusionDirectionX) {
         extrusion = new vec3d(
             polyline.extrusionDirectionX, polyline.extrusionDirectionY, polyline.extrusionDirectionZ
@@ -116,17 +120,19 @@ function parse3DLWPolyline(polyline) {
             const vec1 = convertToVec3D(v1, polyline.elevation);
             const vec2 = convertToVec3D(v2, polyline.elevation);
             if (extrusion === null) {
-                const newLine = new entity3D("LINE", [vec1, vec2]);
+                const newLine = new entity("LINE", [vec1, vec2]);
+                newLine.parent = result
                 newPolyline.push(newLine);                
             } else {
                 const vec1Extruded = applyExtrusion(vec1,extrusion)
                 const vec2Extruded = applyExtrusion(vec2,extrusion)
-                const newLine = new entity3D("LINE", [vec1Extruded, vec2Extruded])
+                const newLine = new entity("LINE", [vec1Extruded, vec2Extruded])
+                newLine.parent = result
                 newPolyline.push(newLine);
             }
         }
     }
-    const result = new entity3D("LWPOLYLINE", newPolyline)
+    result.children = newPolyline;
     result.normalizeToWorld();
     return result;
 }
@@ -155,7 +161,7 @@ function parsePolyline(polyline) {
             break;
         }
         v2 = convertToVec3D(v2);
-        const newLine = new entity3D("LINE", [v1,v2])
+        const newLine = new entity("LINE", [v1,v2])
         newPolyline.push(newLine);
     }
     let faceArr = []
@@ -179,13 +185,13 @@ function parsePolyline(polyline) {
             if (faceArr[k] >= 0 && faceArr[j] >= 0) {
                 const v1 = convertToVec3D(polyline.vertices[i1-1]);
                 const v2 = convertToVec3D(polyline.vertices[i2-1]); 
-                const newLine = new entity3D("LINE", [v1,v2]);
+                const newLine = new entity("LINE", [v1,v2]);
                 newPolyline.push(newLine);
             }
         }
         faceArr = [];
     }
-    const result = new entity3D("POLYLINE",newPolyline)
+    const result = new entity("POLYLINE",newPolyline)
     result.normalizeToWorld();
     return result;
 }
@@ -193,21 +199,21 @@ function parsePolyline(polyline) {
 function parse2DLine(line) {
     const v1 = convertToVec2D(line.vertices[0]);
     const v2 = convertToVec2D(line.vertices[1]);
-    const result = new entity2D("LINE",[v1,v2]);
+    const result = new entitD("LINE",[v1,v2]);
     result.normalizeToWorld()
     return result;
 }
 function parse3DLine(line) {
     const v1 = convertToVec3D(line.vertices[0]);
     const v2 = convertToVec3D(line.vertices[1]);
-    const result = new entity3D("LINE",[v1,v2]);
+    const result = new entity("LINE",[v1,v2]);
     result.normalizeToWorld()
     return result;
 
 }
 
 function parse2DArc(arc) {
-    const result = new entity2D("ARC", [convertToVec2D(arc.center)], {
+    const result = new entity("ARC", [convertToVec2D(arc.center)], {
         startAngle: arc.startAngle,
         endAngle: arc.endAngle,
         radius: arc.radius
@@ -217,7 +223,7 @@ function parse2DArc(arc) {
 }
 
 function parse3DArc(arc) {
-    const result = new entity3D(
+    const result = new entity(
         "ARC",
         [convertToVec3D(arc.center)],{
             startAngle: arc.startAngle,

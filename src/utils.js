@@ -325,14 +325,24 @@ class vec3d {
   }
 }
 
-class entity2D {
+class entity {
   type;
   vertices;
   attribs;
-  constructor(type = null, vertices = [], attribs = {}) {
+  parent;
+  children;
+  constructor(
+    type = null,
+    vertices = [],
+    attribs = {},
+    parent = null,
+    children = []
+  ) {
     this.type = type;
     this.vertices = vertices;
     this.attribs = attribs;
+    this.parent = parent,
+    this.children = children
   }
   first() {
     return this.vertices[0];
@@ -341,44 +351,21 @@ class entity2D {
     return this.vertices[length - 1];
   }
   normalizeToWorld() {
-    for (let i = 0; i < this.vertices.length; i++) {
-      this.vertices[i].normalizeToWorld();
+    if (this.children.length !== 0) {
+      for (let i=0; i < this.children.length; i++) {
+        this.children[i].normalizeToWorld();
+      }
     }
-    if (this.attribs.radius) {
-      this.attribs.radius = normalizeRadiusToWorld(this.attribs.radius);
-    }
-  }
-}
-
-class entity3D {
-  type;
-  vertices;
-  attribs;
-
-  constructor(
-    type = null,
-    vertices = [],
-    attribs = {},
-  ) {
-    this.type = type;
-    this.vertices = vertices;
-    this.attribs = attribs;
-  }
-  first() {
-    return this.vertices[0];
-  }
-  last() {
-    return this.vertices[length - 1];
-  }
-  normalizeToWorld() { Scene.centroidOfEnts
-    for (let i = 0; i < this.vertices.length; i++) {
-      this.vertices[i].normalizeToWorld();
-    }
-    if (this.attribs.radius) {
-      this.attribs.radius = normalizeRadiusToWorld(this.attribs.radius);
-    }
-    if (this.attribs.extrusionDirection) {
-      this.attribs.extrusionDirection.normalizeToWorld();
+    if (this.vertices.length !== 0) {
+      for (let i = 0; i < this.vertices.length; i++) {
+        this.vertices[i].normalizeToWorld();
+      }
+      if (this.attribs.radius) {
+        this.attribs.radius = normalizeRadiusToWorld(this.attribs.radius);
+      }
+      if (this.attribs.extrusionDirection) {
+        this.attribs.extrusionDirection.normalizeToWorld();
+      }
     }
   }
 }
@@ -611,20 +598,20 @@ class Scene {
   static render() {
     function renderEnt(e) {
       switch (e.type) {
+
         case "LWPOLYLINE": {
-          for (let i=0; i<e.vertices.length; i++) {
-            renderEnt(e.vertices[i]);
+          for (let i=0; i<e.children.length; i++) {
+            renderEnt(e.children[i]);
           }
           break;
         }
         case "POLYLINE": {
-          for (let i=0; i<e.vertices.length; i++) {
-            renderEnt(e.vertices[i]);
+          for (let i=0; i<e.children.length; i++) {
+            renderEnt(e.children[i]);
           }
           break;
         }
         case "LINE": {
-    
           Renderer.drawLine(e.vertices[0], e.vertices[1]);
           break;
         }
@@ -737,7 +724,7 @@ class Scene {
           -Camera.rotation.z
         ), Scene.centroidOfEnts);
       
-      const newEnt = new entity3D(
+      const newEnt = new entity(
         "LINE",
         [ cameraPos
         , inWorld],
@@ -758,50 +745,12 @@ class outFile {
   }
 }
 
-class vertex {
-  pos; // a vec3 or 2
-  parent; // a entity or none
-  inView; // way to reduce computations when user clicks 
-  constructor(pos, owner = null, inView = false) {
-    this.pos = pos;
-    this.owner = owner;
-    this.inView = inView;
-  }
-}
-
-class entity {
-  static id = 0;
-  vertices; // eg 2 points for a line and x points for an arc
-  type;
-  attribs; //Things like radius, start/end angles etc used for grabbing dimensions only.
-  length;
-  isShape;
-  parent;
-  constructor(type, vertices = [], attribs = {}, rad = null, len = null) {
-    this.type = type;
-    this.vertices = vertices;
-    this.attribs = attribs;
-    this.radius = rad;
-    this.length = len;
-    this.id = entity.id++;
-  }
-}
-
-//an entity composed of other entities.
-class complexEntity {
-  children;
-  type;
-  length;
-  boundingBox;
-  isShape;
-}
 
 export {
   Renderer,
   Camera,
   vec2d,
-  entity2D,
-  entity3D,
+  entity,
   vec3d,
   Scene,
   MouseInput,

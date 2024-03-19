@@ -1,7 +1,9 @@
 Need a little reorganization.
 Needs optomization and some structural changes. 
 Currently a bit messy.
-
+Make parent child system for entity.
+make arcs only store 4 points but render using x amount for visual clarity and performance.
+loop through all entitys to find where user clicked.
 
 TO ADD - 
     - Add a way to render numbers and letters.
