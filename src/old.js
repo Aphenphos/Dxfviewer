@@ -164,13 +164,13 @@
 //         }
 //         if (this.is3D) {
 //             this.boundingBox = {
-//                 min: new vec3d(minX,minY,minZ),
-//                 max: new vec3d(maxX,maxY,maxZ)
+//                 min: new vec3(minX,minY,minZ),
+//                 max: new vec3(maxX,maxY,maxZ)
 //             }
 //         } else {
 //             this.boundingBox = {
-//                 min: new vec2d(minX, minY),
-//                 max: new vec2d(maxX,maxY)
+//                 min: new vec2(minX, minY),
+//                 max: new vec2(maxX,maxY)
 //             }
 //         }
 //     }

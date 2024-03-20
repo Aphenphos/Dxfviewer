@@ -5,8 +5,22 @@
 //object count increases
 const WorldSpaceSize = 100;
 const scaleFactor = 10.0;
-
+const Tolerance = 1e-5
+console.log(Tolerance)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function isClose(n1,n2, tolerance = Tolerance) {
+  return Math.abs(Math.abs(n1) - Math.abs(n2)) < tolerance
+}
+function isCloseVec(v1, v2, tolerance = Tolerance) {
+  if (isClose(v1.x,v2.x) && isClose(v1.y, v2.y) && isClose(v1.z, v2.z)) {
+    console.log(v1,v2)
+    return true
+  }
+  return false;
+}
+
+
 
 function clamp(val, min, max) {
   const test = val < min ? min : val;
@@ -22,7 +36,7 @@ function bulgeToArc(p1, p2) {
     return Math.atan2(pn2.y - pn1.y, pn2.x - pn1.x);
   }
   function polar(point, angle, distance) {
-    return new vec2d(
+    return new vec2(
       point.x + distance * Math.cos(angle),
       point.y + distance * Math.sin(angle)
     );
@@ -38,14 +52,12 @@ function bulgeToArc(p1, p2) {
     startAngle = angle(c,p1);
     endAngle = angle(c,p2);
   }
-  return new entity2D("ARC", [c], {
+  return new entity("ARC", [c], {
     startAngle,
     endAngle,
     radius: Math.abs(r),
   });
 }
-//create a function which scales to something universal?
-
 function scaleRad(rad) {
   return rad * scaleFactor;
 }
@@ -60,7 +72,13 @@ function degToRad(deg) {
 function last(array) {
   return array[array.length - 1];
 }
-class vec2d {
+class parent {
+  parent;
+  constructor(parent = null) {
+    this.parent = parent;
+  }
+}
+class vec2 {
   x;
   y;
   z;
@@ -83,7 +101,7 @@ class vec2d {
     this.y += translation.y;
   }
   unNormalize(min, max) {
-    return new vec3d(
+    return new vec3(
       this.x * (max.x - min.x) + min.x,
       this.y * (max.y - min.y) + min.y,
       Camera.pos.z
@@ -99,45 +117,45 @@ class vec2d {
       (2 * (this.y - -WorldSpaceSize)) / (WorldSpaceSize - -WorldSpaceSize) - 1;
   }
   projectToScreen(camera, screenW, screenH) {
-    const pointTranslated = new vec3d(
+    const pointTranslated = new vec3(
       this.x - camera.pos.x,
       this.y - camera.pos.y,
       this.z - camera.pos.z
       );
     const distanceRatio = 1 / Math.tan(camera.fov / 2);
     const aspectRatio = screenW / screenH;
-    const pointProjected = new vec2d(
+    const pointProjected = new vec2(
       (pointTranslated.x * distanceRatio) / pointTranslated.z,
       (pointTranslated.y * distanceRatio * aspectRatio) / pointTranslated.z
     );
-    const pointOnScreen = new vec2d(
+    const pointOnScreen = new vec2(
       (pointProjected.x + 1) * 0.5 * screenW,
       (pointProjected.y + 1) * 0.5 * screenH
     );
     return pointOnScreen;
   }
   screenToWorld(camera, screenW, screenH) {
-    const pointFromScreen = new vec2d(
+    const pointFromScreen = new vec2(
       (this.x / screenW) * 2 - 1,
       (this.y / screenH) * 2 - 1
     );
-    const distanceRatio =   Math.tan(camera.fov / 2);
+    const distanceRatio = Math.tan(camera.fov / 2);
     const aspectRatio = screenW / screenH
 
-    const pointUnProjected = new vec3d(
+    const pointUnProjected = new vec3(
       pointFromScreen.x * distanceRatio,
       pointFromScreen.y * distanceRatio / aspectRatio,
       1
     );
     pointUnProjected.translate(
-      new vec3d(
+      new vec3(
         camera.pos.x,
         camera.pos.y,
         camera.pos.z
         )
       )
     const pointRotated = pointUnProjected.rotateAboutPoint(
-      new vec3d(
+      new vec3(
         -camera.rotation.x,
         -camera.rotation.y,
         -camera.rotation.z
@@ -146,6 +164,7 @@ class vec2d {
       )
     return pointRotated;
   }
+
   rotateAboutPoint(rotation, point) {
     const qx = Math.sin(rotation.x / 2);
     const qy = Math.sin(rotation.y / 2);
@@ -175,7 +194,7 @@ class vec2d {
     const rotatedPz = px * (2 * normalizedQx * normalizedQz - 2 * normalizedQw * normalizedQy) +
                       py * (2 * normalizedQy * normalizedQz + 2 * normalizedQw * normalizedQx) +
                       pz * (normalizedQw * normalizedQw - normalizedQx * normalizedQx - normalizedQy * normalizedQy + normalizedQz * normalizedQz);
-    return new vec3d(
+    return new vec3(
       rotatedPx + point.x,
       rotatedPy + point.y,
       rotatedPz + point.z,
@@ -183,7 +202,7 @@ class vec2d {
   }
 }
 
-class vec3d {
+class vec3 {
   x;
   y;
   z;
@@ -198,7 +217,7 @@ class vec3d {
     this.z = this.z * scaleFactor;
   }
   dilate(x) {
-    return new vec3d(
+    return new vec3(
       this.x / x,
       this.y / x,
       this.z / x
@@ -248,7 +267,7 @@ class vec3d {
     const rotatedPz = px * (2 * normalizedQx * normalizedQz - 2 * normalizedQw * normalizedQy) +
                       py * (2 * normalizedQy * normalizedQz + 2 * normalizedQw * normalizedQx) +
                       pz * (normalizedQw * normalizedQw - normalizedQx * normalizedQx - normalizedQy * normalizedQy + normalizedQz * normalizedQz);
-    return new vec3d(
+    return new vec3(
       rotatedPx + point.x,
       rotatedPy + point.y,
       rotatedPz + point.z,
@@ -263,26 +282,26 @@ class vec3d {
       (2 * (this.z - -WorldSpaceSize)) / (WorldSpaceSize - -WorldSpaceSize) - 1;
   }
   projectToScreen(camera, screenW, screenH) {
-    const pointTranslated = new vec3d(this.x, this.y, this.z);
-    pointTranslated.translate(new vec3d(
+    const pointTranslated = new vec3(this.x, this.y, this.z);
+    pointTranslated.translate(new vec3(
       -camera.pos.x,
       -camera.pos.y,
       -camera.pos.z
     ))
     const distanceRatio = 1 / Math.tan(camera.fov / 2);
     const aspectRatio = screenW / screenH;
-    const pointProjected = new vec2d(
+    const pointProjected = new vec2(
       (pointTranslated.x * distanceRatio) / pointTranslated.z,
       (pointTranslated.y * distanceRatio * aspectRatio) / pointTranslated.z
     );
-    const pointOnScreen = new vec2d(
+    const pointOnScreen = new vec2(
       (pointProjected.x + 1) * 0.5 * screenW,
       (pointProjected.y + 1) * 0.5 * screenH
     );
     return pointOnScreen;
   }
   getTranslated(translation) {
-    return new vec3d(
+    return new vec3(
       this.x + translation.x,
       this.y + translation.y,
       this.z + translation.z
@@ -294,7 +313,7 @@ class vec3d {
     this.z += translation.z
   }
   crossProduct(v) {
-    return new vec3d(
+    return new vec3(
       this.y * v.z - this.z * v.y,
       this.z * v.x - this.x * v.z,
       this.x * v.y - this.y * v.x
@@ -325,24 +344,41 @@ class vec3d {
   }
 }
 
-class entity {
+class entity extends parent{
   type;
   vertices;
   attribs;
-  parent;
   children;
   constructor(
     type = null,
     vertices = [],
     attribs = {},
-    parent = null,
     children = []
   ) {
+    super()
     this.type = type;
     this.vertices = vertices;
     this.attribs = attribs;
-    this.parent = parent,
     this.children = children
+  }
+  //will probably need to change this in some way
+  isVertPresent(vert) {
+    if (this.vertices.length > 0) {
+      for (let i=0; i < this.vertices.length; i++) {
+        if (isCloseVec(this.vertices[i], vert)) {
+          return true;
+        }
+      }
+    }
+    if (this.children.length > 0) {
+      for (let c=0; c < this.children.length; c++) {
+        const result = this.children[c].isVertPresent(vert);
+        if (result === true) {
+          return result;
+        }
+      }
+    }
+    return false;
   }
   first() {
     return this.vertices[0];
@@ -370,8 +406,8 @@ class entity {
   }
 }
 class Camera {
-  static pos = new vec3d(0, 0, -1);
-  static rotation = new vec3d(0,0,0);
+  static pos = new vec3(0, 0, -1);
+  static rotation = new vec3(0,0,0);
   static fov = 45;
   static near = 0.01;
   static far = 1000
@@ -398,13 +434,13 @@ class Camera {
     return this.pos;
   }
   static isInView(p) {
-    const d = new vec3d(
+    const d = new vec3(
       this.pos.x - p.x,
       this.pos.y - p.y,
       this.pos.z - p.z
     );
     d.normalize();
-    const dp = d.dotProduct(new vec3d(
+    const dp = d.dotProduct(new vec3(
       0,0,-1
     ));
     const fovInRad = this.fov * (Math.PI / 180);
@@ -472,7 +508,7 @@ class Renderer {
 
     // Calculate the first point and move to it
     const startAngle = arc.attribs.startAngle;
-    const p1 = new vec3d(
+    const p1 = new vec3(
         arc.vertices[0].x + arc.attribs.radius * Math.cos(startAngle),
         arc.vertices[0].y + arc.attribs.radius * Math.sin(startAngle),
         arc.vertices[0].z
@@ -490,7 +526,7 @@ class Renderer {
     // Draw lines to the rest of the points
     for (let i = 1; i <= stepCount; i++) {
       const angle = arc.attribs.startAngle + angleStep * i;
-      const p2 = new vec3d(
+      const p2 = new vec3(
         arc.vertices[0].x + arc.attribs.radius * Math.cos(angle),
         arc.vertices[0].y + arc.attribs.radius * Math.sin(angle),
         arc.vertices[0].z
@@ -508,7 +544,7 @@ class Renderer {
         }
     this.context.stroke();
     this.context.closePath();
-    const p2 = new vec3d(
+    const p2 = new vec3(
       arc.vertices[0].x + arc.attribs.radius * Math.cos(arc.attribs.endAngle),
       arc.vertices[0].y + arc.attribs.radius * Math.sin(arc.attribs.endAngle),
       arc.vertices[0].z
@@ -526,15 +562,23 @@ class Renderer {
 
 class Scene {
   static entities = [];
-  static centroidOfEnts = new vec3d(0,0,0);
+  static centroidOfEnts = new vec3(0,0,0);
   static init() {
     window.addEventListener("resize", () => { Scene.update(true) }, false);
     Scene.update(true);
     MouseInput.init();
   }
+  static findVertex(vec) {
+    for (let i=0; i < this.entities.length; i++) {
+      const result = this.entities[i].isVertPresent(vec);
+      if (result) {
+        console.log(i,"hit");
+      }
+    }
+  }
   static findCentroid() {
     let vertCnt = 0;
-    Scene.centroidOfEnts = new vec3d(0,0,0);
+    Scene.centroidOfEnts = new vec3(0,0,0);
     function getCoords(e) {  
       switch (e.type) {
         case("LINE"): {
@@ -639,7 +683,8 @@ class Scene {
       middle: false,
       right: false
     };
-    static initialPosition = new vec2d(0,0);
+    static initialPosition = new vec2(0,0);
+    //add way to check all points my ray cast goes throgh
     static timeMoving = 11;
     static init() {
       document.addEventListener("mousedown", this.mouseDown.bind(this))
@@ -717,20 +762,8 @@ class Scene {
     }
     static handleClick(button) {
       const inWorld = this.initialPosition.screenToWorld(Camera, Renderer.canvas.width, Renderer.canvas.height) 
-      const cameraPos = Camera.pos.rotateAboutPoint(
-        new vec3d(
-          -Camera.rotation.x,
-          -Camera.rotation.y,
-          -Camera.rotation.z
-        ), Scene.centroidOfEnts);
-      
-      const newEnt = new entity(
-        "LINE",
-        [ cameraPos
-        , inWorld],
-      )
-      console.log(newEnt)
-      Scene.addEntity(newEnt);
+      console.log(inWorld);
+      Scene.findVertex(inWorld)
     }
 }
 
@@ -749,9 +782,9 @@ class outFile {
 export {
   Renderer,
   Camera,
-  vec2d,
+  vec2,
   entity,
-  vec3d,
+  vec3,
   Scene,
   MouseInput,
   outFile,
@@ -764,3 +797,4 @@ export {
   WorldSpaceSize,
   scaleFactor,
 };
+

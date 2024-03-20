@@ -1,5 +1,5 @@
 import { DxfParser } from 'dxf-parser';
-import { outFile, bulgeToArc, vec2d, vec3d, entity } from './utils';
+import { outFile, bulgeToArc, vec2, vec3, entity } from './utils';
 import { downloadFile } from './output';
 import { Scene } from './utils';
 //Maximum coordinate for x and y so for 1000 inches we use 500 so minX = -500 and max is 500;
@@ -81,7 +81,7 @@ function parse2DLWPolyLine(polyline) {
             const newArc = bulgeToArc(v1, v2);
             newPolyline.push(newArc);
         } else {
-            const newLine = new entity("LINE", [convertToVec2D(v1),convertToVec2D(v2)])
+            const newLine = new entity("LINE", [convertTovec2(v1),convertTovec2(v2)])
             newLine.parent = result;
             newPolyline.push(newLine);
         }
@@ -96,7 +96,7 @@ function parse3DLWPolyline(polyline) {
     let extrusion = null;
     const result = new entity("LWPOLYLINE")
     if (polyline.extrusionDirectionX === 0 || polyline.extrusionDirectionX) {
-        extrusion = new vec3d(
+        extrusion = new vec3(
             polyline.extrusionDirectionX, polyline.extrusionDirectionY, polyline.extrusionDirectionZ
         )
     }
@@ -117,8 +117,8 @@ function parse3DLWPolyline(polyline) {
             const newArc = bulgeToArc(v1,v2);
             newArc.vertices[0].z = polyline.elevation;
         } else {
-            const vec1 = convertToVec3D(v1, polyline.elevation);
-            const vec2 = convertToVec3D(v2, polyline.elevation);
+            const vec1 = convertTovec3(v1, polyline.elevation);
+            const vec2 = convertTovec3(v2, polyline.elevation);
             if (extrusion === null) {
                 const newLine = new entity("LINE", [vec1, vec2]);
                 newLine.parent = result
@@ -141,7 +141,7 @@ function parsePolyline(polyline) {
     const newPolyline = [];
     let faceBeginning = 0;
     for (let i = 0; i < polyline.vertices.length - 1; i++) {
-        const v1 = convertToVec3D(polyline.vertices[i]);
+        const v1 = convertTovec3(polyline.vertices[i]);
         let v2 = polyline.vertices[i+1];
         if (i === polyline.vertices.length) {
             if (polyline.shape === true) {
@@ -160,7 +160,7 @@ function parsePolyline(polyline) {
             faceBeginning = i+1;
             break;
         }
-        v2 = convertToVec3D(v2);
+        v2 = convertTovec3(v2);
         const newLine = new entity("LINE", [v1,v2])
         newPolyline.push(newLine);
     }
@@ -183,8 +183,8 @@ function parsePolyline(polyline) {
             let i1 = faceArr[k] > 0 ? faceArr[k] : polyline.vertices.length + faceArr[k];
             let i2 = faceArr[j] > 0 ? faceArr[j]: polyline.vertices.length + faceArr[j];
             if (faceArr[k] >= 0 && faceArr[j] >= 0) {
-                const v1 = convertToVec3D(polyline.vertices[i1-1]);
-                const v2 = convertToVec3D(polyline.vertices[i2-1]); 
+                const v1 = convertTovec3(polyline.vertices[i1-1]);
+                const v2 = convertTovec3(polyline.vertices[i2-1]); 
                 const newLine = new entity("LINE", [v1,v2]);
                 newPolyline.push(newLine);
             }
@@ -197,15 +197,15 @@ function parsePolyline(polyline) {
 }
 
 function parse2DLine(line) {
-    const v1 = convertToVec2D(line.vertices[0]);
-    const v2 = convertToVec2D(line.vertices[1]);
-    const result = new entitD("LINE",[v1,v2]);
+    const v1 = convertTovec2(line.vertices[0]);
+    const v2 = convertTovec2(line.vertices[1]);
+    const result = new entity("LINE",[v1,v2]);
     result.normalizeToWorld()
     return result;
 }
 function parse3DLine(line) {
-    const v1 = convertToVec3D(line.vertices[0]);
-    const v2 = convertToVec3D(line.vertices[1]);
+    const v1 = convertTovec3(line.vertices[0]);
+    const v2 = convertTovec3(line.vertices[1]);
     const result = new entity("LINE",[v1,v2]);
     result.normalizeToWorld()
     return result;
@@ -213,7 +213,7 @@ function parse3DLine(line) {
 }
 
 function parse2DArc(arc) {
-    const result = new entity("ARC", [convertToVec2D(arc.center)], {
+    const result = new entity("ARC", [convertTovec2(arc.center)], {
         startAngle: arc.startAngle,
         endAngle: arc.endAngle,
         radius: arc.radius
@@ -225,29 +225,29 @@ function parse2DArc(arc) {
 function parse3DArc(arc) {
     const result = new entity(
         "ARC",
-        [convertToVec3D(arc.center)],{
+        [convertTovec3(arc.center)],{
             startAngle: arc.startAngle,
             endAngle: arc.endAngle,
             radius: arc.radius
         })
     if (arc.extrusionDirectionX || arc.extrusionDirectionX === 0) {
-        result.attribs.extrusionDirection = new vec3d(arc.extrusionDirectionX, arc.extrusionDirectionY, arc.extrusionDirectionZ);
+        result.attribs.extrusionDirection = new vec3(arc.extrusionDirectionX, arc.extrusionDirectionY, arc.extrusionDirectionZ);
     }
     result.normalizeToWorld()
     return result;    
 }
-function convertToVec2D(object) {
-    return new vec2d(object.x, object.y);
+function convertTovec2(object) {
+    return new vec2(object.x, object.y);
 }
-function convertToVec3D(object, elevation) {
+function convertTovec3(object, elevation) {
     if (!elevation) {
-        return new vec3d(object.x, object.y, object.z);
+        return new vec3(object.x, object.y, object.z);
     }
-    return new vec3d(object.x, object.y, elevation);
+    return new vec3(object.x, object.y, elevation);
 }
 function applyExtrusion(point, extrusion) {
     function crossProduct(vec1, vec2) {
-        return new vec3d(
+        return new vec3(
             vec1.y * vec2.z - vec1.z * vec2.y,
             vec1.z * vec2.x - vec1.x * vec2.z,
             vec1.x * vec2.y - vec1.y * vec2.x
@@ -256,16 +256,16 @@ function applyExtrusion(point, extrusion) {
 
     function normalize(vec) {
         let length = vec.magnitude();
-        return new vec3d(vec.x / length, vec.y / length, vec.z / length);
+        return new vec3(vec.x / length, vec.y / length, vec.z / length);
     }
 
     let Az = normalize(extrusion);
     let Ax, Ay;
 
     if (Math.abs(Az.x) < 1/64 && Math.abs(Az.y) < 1/64) {
-        Ax = normalize(crossProduct(new vec3d(0, 1, 0), Az));
+        Ax = normalize(crossProduct(new vec3(0, 1, 0), Az));
     } else {
-        Ax = normalize(crossProduct(new vec3d(0, 0, 1), Az));
+        Ax = normalize(crossProduct(new vec3(0, 0, 1), Az));
     }
 
     Ay = normalize(crossProduct(Az, Ax));
@@ -275,14 +275,14 @@ function applyExtrusion(point, extrusion) {
         let x = px * Ax.x + py * Ax.y + pz * Ax.z;
         let y = px * Ay.x + py * Ay.y + pz * Ay.z;
         let z = px * Az.x + py * Az.y + pz * Az.z;
-        return new vec3d(x, y, z);
+        return new vec3(x, y, z);
     }
 
-    let Wx = wcsToOcs(new vec3d(1, 0, 0));
-    let Wy = wcsToOcs(new vec3d(0, 1, 0));
-    let Wz = wcsToOcs(new vec3d(0, 0, 1));
+    let Wx = wcsToOcs(new vec3(1, 0, 0));
+    let Wy = wcsToOcs(new vec3(0, 1, 0));
+    let Wz = wcsToOcs(new vec3(0, 0, 1));
 
-    return new vec3d(
+    return new vec3(
         point.x * Wx.x + point.y * Wx.y + point.z * Wx.z,
         point.x * Wy.x + point.y * Wy.y + point.z * Wy.z,
         point.x * Wz.x + point.y * Wz.y + point.z * Wz.z
