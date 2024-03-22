@@ -116,6 +116,7 @@ function parse3DLWPolyline(polyline) {
         if (v1.bulge) {
             const newArc = bulgeToArc(v1,v2);
             newArc.vertices[0].z = polyline.elevation;
+            newPolyline.push(newArc);
         } else {
             const vec1 = convertTovec3(v1, polyline.elevation);
             const vec2 = convertTovec3(v2, polyline.elevation);
@@ -213,26 +214,81 @@ function parse3DLine(line) {
 }
 
 function parse2DArc(arc) {
-    const result = new entity("ARC", [convertTovec2(arc.center)], {
+    const center = convertTovec2(arc.center)
+    const vertices = [];
+    const stepCount = 100;
+    if (arc.endAngle < arc.startAngle) {
+        arc.endAngle += 2 * Math.PI;
+    }
+    const angleStep = (arc.endAngle - arc.startAngle) * .01;
+
+    const p1 = new vec2(
+        center.x + arc.radius * Math.cos(arc.startAngle),
+        center.y + arc.radius * Math.sin(arc.startAngle),
+        center.z
+    );
+    vertices.push(p1);
+    for (let i=1; i <= stepCount; i++) {
+        const angle = arc.startAngle + angleStep*i
+        const point = new vec2(
+            center.x + arc.radius * Math.cos(angle),
+            center.y + arc.radius * Math.sin(angle),
+            center.z
+        );
+        vertices.push(point);
+    }
+    const p2 = new vec2(
+        center.x + arc.radius * Math.cos(arc.endAngle),
+        center.y + arc.radius * Math.sin(arc.endAngle),
+        center.z
+    );
+    vertices.push(p2);
+    const result = new entity("ARC", vertices, {
         startAngle: arc.startAngle,
         endAngle: arc.endAngle,
-        radius: arc.radius
-    })
+        radius: arc.radius,
+        center: center
+    });
     result.normalizeToWorld()
     return result;
 }
 
 function parse3DArc(arc) {
-    const result = new entity(
-        "ARC",
-        [convertTovec3(arc.center)],{
-            startAngle: arc.startAngle,
-            endAngle: arc.endAngle,
-            radius: arc.radius
-        })
-    if (arc.extrusionDirectionX || arc.extrusionDirectionX === 0) {
-        result.attribs.extrusionDirection = new vec3(arc.extrusionDirectionX, arc.extrusionDirectionY, arc.extrusionDirectionZ);
+    const center = convertTovec3(arc.center)
+    const vertices = [];
+    const stepCount = 100;
+    if (arc.endAngle < arc.startAngle) {
+        arc.endAngle += 2 * Math.PI;
     }
+    const angleStep = (arc.endAngle - arc.startAngle) * .01;
+
+    const p1 = new vec3(
+        center.x + arc.radius * Math.cos(arc.startAngle),
+        center.y + arc.radius * Math.sin(arc.startAngle),
+        center.z
+    );
+    vertices.push(p1);
+    for (let i=1; i <= stepCount; i++) {
+        const angle = arc.startAngle + angleStep*i
+        const point = new vec3(
+            center.x + arc.radius * Math.cos(angle),
+            center.y + arc.radius * Math.sin(angle),
+            center.z
+        );
+        vertices.push(point);
+    }
+    const p2 = new vec3(
+        center.x + arc.radius * Math.cos(arc.endAngle),
+        center.y + arc.radius * Math.sin(arc.endAngle),
+        center.z
+    );
+    vertices.push(p2);
+    const result = new entity("ARC", vertices, {
+        startAngle: arc.startAngle,
+        endAngle: arc.endAngle,
+        radius: arc.radius,
+        center: center
+    });
     result.normalizeToWorld()
     return result;    
 }

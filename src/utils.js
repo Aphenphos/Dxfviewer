@@ -27,6 +27,7 @@ function clamp(val, min, max) {
   return test > max ? max : test;
 }
 
+//clean this up
 function bulgeToArc(p1, p2) {
   function distance(p1, p2) {
     return Math.hypot(p2.x - p1.x, p2.y - p1.y);
@@ -52,11 +53,53 @@ function bulgeToArc(p1, p2) {
     startAngle = angle(c,p1);
     endAngle = angle(c,p2);
   }
-  return new entity("ARC", [c], {
-    startAngle,
+   
+   const arc = { startAngle,
     endAngle,
     radius: Math.abs(r),
-  });
+    center: c
+  }
+  function parse(arc) {
+    const center = arc.center
+    const vertices = [];
+    const stepCount = 100;
+    if (arc.endAngle < arc.startAngle) {
+        arc.endAngle += 2 * Math.PI;
+    }
+    const angleStep = (arc.endAngle - arc.startAngle) * .01;
+
+    const p1 = new vec2(
+        center.x + arc.radius * Math.cos(arc.startAngle),
+        center.y + arc.radius * Math.sin(arc.startAngle),
+        center.z
+    );
+    vertices.push(p1);
+    for (let i=1; i <= stepCount; i++) {
+        const angle = arc.startAngle + angleStep*i
+        const point = new vec2(
+            center.x + arc.radius * Math.cos(angle),
+            center.y + arc.radius * Math.sin(angle),
+            center.z
+        );
+        vertices.push(point);
+    }
+    const p2 = new vec2(
+        center.x + arc.radius * Math.cos(arc.endAngle),
+        center.y + arc.radius * Math.sin(arc.endAngle),
+        center.z
+    );
+    vertices.push(p2);
+    const result = new entity("ARC", vertices, {
+        startAngle: arc.startAngle,
+        endAngle: arc.endAngle,
+        radius: arc.radius,
+        center: center
+    });
+    return result;
+  }
+
+  return parse(arc);
+  
 }
 function scaleRad(rad) {
   return rad * scaleFactor;
@@ -162,7 +205,15 @@ class vec2 {
         ),
         Scene.centroidOfEnts
       )
-    return pointRotated;
+    pointRotated.translate(
+      new vec3(
+        -camera.pos.x,
+        -camera.pos.y,
+        -camera.pos.z
+        )
+      )
+    pointRotated.normalize()
+    return new ray(camera.pos, pointRotated);
   }
 
   rotateAboutPoint(rotation, point) {
@@ -199,6 +250,49 @@ class vec2 {
       rotatedPy + point.y,
       rotatedPz + point.z,
     )
+  }
+}
+
+class ray {
+  origin;
+  direction;
+  constructor(origin, direction) {
+    this.origin = origin;
+    this.direction = direction;
+  }
+
+  intersectVertex(vertex, radius = .01) {
+    const oppositeVertex = new vec3 (-vertex.x, -vertex.y, -vertex.z)
+    const oc = this.origin.getTranslated(oppositeVertex);
+    const a = this.direction.dotProduct(this.direction);
+    const b = 2 * oc.dotProduct(this.direction);
+    const c = oc.dotProduct(oc) - radius**2;
+    const disc = b**2 - 4*a*c;
+    
+    if (disc < 0) {
+      return false;
+    }
+    
+    const distSqrt = Math.sqrt(disc);
+    let q;
+    if (b < 0) {
+      q = (-b - distSqrt) / 2.0;
+    } else {
+      q = (-b + distSqrt) / 2.0;
+    }
+    const t0 = q/a;
+    const t1 = c/q;
+
+    if (t0 > t1) {
+      let temp = t0;
+      t0 = t1;
+      t1 = temp;
+    }
+
+    if (t1 < 0) {
+      return false;
+    }
+    return true;
   }
 }
 
@@ -362,19 +456,17 @@ class entity extends parent{
     this.children = children
   }
   //will probably need to change this in some way
-  isVertPresent(vert) {
+  doesRayIntersect(ray) {
     if (this.vertices.length > 0) {
       for (let i=0; i < this.vertices.length; i++) {
-        if (isCloseVec(this.vertices[i], vert)) {
-          return true;
-        }
+        return ray.intersectVertex(this.vertices[i])
       }
     }
     if (this.children.length > 0) {
       for (let c=0; c < this.children.length; c++) {
-        const result = this.children[c].isVertPresent(vert);
+        const result = this.children[c].doesRayIntersect(ray);
         if (result === true) {
-          return result;
+          return true;
         }
       }
     }
@@ -499,38 +591,21 @@ class Renderer {
     Renderer.putPoint(pointOnScreen);
   }
   static drawArc(arc) {
-    const stepCount = 100;
-    if (arc.attribs.endAngle < arc.attribs.startAngle) {
-      arc.attribs.endAngle += 2 * Math.PI;
-    } 
-    const angleStep = (arc.attribs.endAngle - arc.attribs.startAngle) / stepCount;
-    this.context.beginPath();
-
-    // Calculate the first point and move to it
-    const startAngle = arc.attribs.startAngle;
-    const p1 = new vec3(
-        arc.vertices[0].x + arc.attribs.radius * Math.cos(startAngle),
-        arc.vertices[0].y + arc.attribs.radius * Math.sin(startAngle),
-        arc.vertices[0].z
-    );
+    const p1 = arc.vertices[0];
     const p1Rotated = p1.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
     if (!Camera.isInView(p1Rotated)) {
       return;
     }
     const p1OnScreen = p1Rotated.projectToScreen(
-        Camera,
-        this.canvas.width,
-        this.canvas.height
-    );
+      Camera,
+      this.canvas.width,
+      this.canvas.height
+      );
+    this.context.beginPath();
     this.context.moveTo(p1OnScreen.x, p1OnScreen.y);
     // Draw lines to the rest of the points
-    for (let i = 1; i <= stepCount; i++) {
-      const angle = arc.attribs.startAngle + angleStep * i;
-      const p2 = new vec3(
-        arc.vertices[0].x + arc.attribs.radius * Math.cos(angle),
-        arc.vertices[0].y + arc.attribs.radius * Math.sin(angle),
-        arc.vertices[0].z
-        );
+    for (let i = 1; i < arc.vertices.length; i++) {
+      const p2 = arc.vertices[i]
         const p2Rotated = p2.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
         if (!Camera.isInView(p2Rotated)) {
           return;
@@ -544,11 +619,7 @@ class Renderer {
         }
     this.context.stroke();
     this.context.closePath();
-    const p2 = new vec3(
-      arc.vertices[0].x + arc.attribs.radius * Math.cos(arc.attribs.endAngle),
-      arc.vertices[0].y + arc.attribs.radius * Math.sin(arc.attribs.endAngle),
-      arc.vertices[0].z
-  );
+    const p2 = arc.vertices[99];
     const p2Rotated = p2.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
     const p2OnScreen = p2Rotated.projectToScreen(
         Camera,
@@ -568,9 +639,9 @@ class Scene {
     Scene.update(true);
     MouseInput.init();
   }
-  static findVertex(vec) {
+  static findVertexIntersects(ray) {
     for (let i=0; i < this.entities.length; i++) {
-      const result = this.entities[i].isVertPresent(vec);
+      const result = this.entities[i].doesRayIntersect(ray);
       if (result) {
         console.log(i,"hit");
       }
@@ -762,8 +833,7 @@ class Scene {
     }
     static handleClick(button) {
       const inWorld = this.initialPosition.screenToWorld(Camera, Renderer.canvas.width, Renderer.canvas.height) 
-      console.log(inWorld);
-      Scene.findVertex(inWorld)
+      Scene.findVertexIntersects(inWorld)
     }
 }
 
