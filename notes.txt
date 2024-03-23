@@ -5,6 +5,12 @@ Make parent child system for entity.
 make arcs only store 4 points but render using x amount for visual clarity and performance.
 loop through all entitys to find where user clicked.
 
+
+
+Need to store location of where points are in space after rotation in order
+to grab when raycasting
+
+
 TO ADD - 
     - Add a way to render numbers and letters.
     - Basic Shape dimensions
