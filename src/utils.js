@@ -5,20 +5,22 @@
 //object count increases
 const WorldSpaceSize = 100;
 const scaleFactor = 10.0;
-const Tolerance = 1e-10;
-console.log(Tolerance);
+const Tolerance = 1e-5
+console.log(Tolerance)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function isClose(n1, n2, tolerance = Tolerance) {
-  return Math.abs(Math.abs(n1) - Math.abs(n2)) < tolerance;
+function isClose(n1,n2, tolerance = Tolerance) {
+  return Math.abs(Math.abs(n1) - Math.abs(n2)) < tolerance
 }
 function isCloseVec(v1, v2, tolerance = Tolerance) {
-  if (isClose(v1.x, v2.x) && isClose(v1.y, v2.y) && isClose(v1.z, v2.z)) {
-    console.log(v1, v2);
-    return true;
+  if (isClose(v1.x,v2.x) && isClose(v1.y, v2.y) && isClose(v1.z, v2.z)) {
+    console.log(v1,v2)
+    return true
   }
   return false;
 }
+
+
 
 function clamp(val, min, max) {
   const test = val < min ? min : val;
@@ -41,58 +43,63 @@ function bulgeToArc(p1, p2) {
     );
   }
   const a = 2 * Math.atan(p1.bulge);
-  const r = distance(p1, p2) / (2 * Math.sin(a));
-  const c = polar(p1, Math.PI / 2 - a + angle(p1, p2), r);
+  const r = distance(p1,p2) / (2 * Math.sin(a));
+  const c = polar(p1, Math.PI / 2 - a + angle(p1,p2), r);
   let startAngle, endAngle;
   if (p1.bulge < 0) {
-    startAngle = angle(c, p2);
-    endAngle = angle(c, p1);
+    startAngle = angle(c,p2);
+    endAngle = angle(c,p1);
   } else {
-    startAngle = angle(c, p1);
-    endAngle = angle(c, p2);
+    startAngle = angle(c,p1);
+    endAngle = angle(c,p2);
   }
-
-  const arc = { startAngle, endAngle, radius: Math.abs(r), center: c };
+   
+   const arc = { startAngle,
+    endAngle,
+    radius: Math.abs(r),
+    center: c
+  }
   function parse(arc) {
-    const center = arc.center;
+    const center = arc.center
     const vertices = [];
     const stepCount = 100;
     if (arc.endAngle < arc.startAngle) {
-      arc.endAngle += 2 * Math.PI;
+        arc.endAngle += 2 * Math.PI;
     }
-    const angleStep = (arc.endAngle - arc.startAngle) * 0.01;
+    const angleStep = (arc.endAngle - arc.startAngle) * .01;
 
     const p1 = new vec2(
-      center.x + arc.radius * Math.cos(arc.startAngle),
-      center.y + arc.radius * Math.sin(arc.startAngle),
-      center.z
+        center.x + arc.radius * Math.cos(arc.startAngle),
+        center.y + arc.radius * Math.sin(arc.startAngle),
+        center.z
     );
     vertices.push(p1);
-    for (let i = 1; i <= stepCount; i++) {
-      const angle = arc.startAngle + angleStep * i;
-      const point = new vec2(
-        center.x + arc.radius * Math.cos(angle),
-        center.y + arc.radius * Math.sin(angle),
-        center.z
-      );
-      vertices.push(point);
+    for (let i=1; i <= stepCount; i++) {
+        const angle = arc.startAngle + angleStep*i
+        const point = new vec2(
+            center.x + arc.radius * Math.cos(angle),
+            center.y + arc.radius * Math.sin(angle),
+            center.z
+        );
+        vertices.push(point);
     }
     const p2 = new vec2(
-      center.x + arc.radius * Math.cos(arc.endAngle),
-      center.y + arc.radius * Math.sin(arc.endAngle),
-      center.z
+        center.x + arc.radius * Math.cos(arc.endAngle),
+        center.y + arc.radius * Math.sin(arc.endAngle),
+        center.z
     );
     vertices.push(p2);
     const result = new entity("ARC", vertices, {
-      startAngle: arc.startAngle,
-      endAngle: arc.endAngle,
-      radius: arc.radius,
-      center: center,
+        startAngle: arc.startAngle,
+        endAngle: arc.endAngle,
+        radius: arc.radius,
+        center: center
     });
     return result;
   }
 
   return parse(arc);
+  
 }
 function scaleRad(rad) {
   return rad * scaleFactor;
@@ -144,7 +151,7 @@ class vec2 {
     );
   }
   magnitude() {
-    return Math.sqrt(this.x * this.x + this.y * this.y);
+    return Math.sqrt(this.x*this.x + this.y*this.y)
   }
   normalizeToWorld() {
     this.x =
@@ -157,7 +164,7 @@ class vec2 {
       this.x - camera.pos.x,
       this.y - camera.pos.y,
       this.z - camera.pos.z
-    );
+      );
     const distanceRatio = 1 / Math.tan(camera.fov / 2);
     const aspectRatio = screenW / screenH;
     const pointProjected = new vec2(
@@ -176,35 +183,52 @@ class vec2 {
       (this.y / screenH) * 2 - 1
     );
     const distanceRatio = Math.tan(camera.fov / 2);
-    const aspectRatio = screenW / screenH;
+    const aspectRatio = screenW / screenH
 
     const pointUnProjected = new vec3(
       pointFromScreen.x * distanceRatio,
-      (pointFromScreen.y * distanceRatio) / aspectRatio,
+      pointFromScreen.y * distanceRatio / aspectRatio,
       1
     );
     pointUnProjected.translate(
-      new vec3(camera.pos.x, camera.pos.y, camera.pos.z)
-    );
+      new vec3(
+        camera.pos.x,
+        camera.pos.y,
+        camera.pos.z
+        )
+      )
     const pointRotated = pointUnProjected.rotateAboutPoint(
-      new vec3(-camera.rotation.x, -camera.rotation.y, -camera.rotation.z),
-      Scene.centroidOfEnts
+      new vec3(
+        -camera.rotation.x,
+        -camera.rotation.y,
+        -camera.rotation.z
+        ),
+        Scene.centroidOfEnts
+      )
+    const cameraRotated = camera.pos.rotateAboutPoint(
+      new vec3(
+        -camera.rotation.x,
+        -camera.rotation.y,
+        -camera.rotation.z
+        ),
+        Scene.centroidOfEnts
     );
     pointRotated.translate(
-      new vec3(-camera.pos.x, -camera.pos.y, -camera.pos.z)
-    );
-    pointRotated.normalize();
-    return new ray(camera.pos, pointRotated);
+      new vec3(
+        -camera.pos.x,
+        -camera.pos.y,
+        -camera.pos.z
+        )
+      )
+    pointRotated.normalize()
+    return new ray(cameraRotated, pointRotated);
   }
 
   rotateAboutPoint(rotation, point) {
     const qx = Math.sin(rotation.x / 2);
     const qy = Math.sin(rotation.y / 2);
     const qz = Math.sin(rotation.z / 2);
-    const qw =
-      Math.cos(rotation.x / 2) *
-      Math.cos(rotation.y / 2) *
-      Math.cos(rotation.z / 2);
+    const qw = Math.cos(rotation.x / 2) * Math.cos(rotation.y / 2) * Math.cos(rotation.z / 2);
 
     // Normalize the quaternion
     const magnitude = Math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw);
@@ -218,37 +242,22 @@ class vec2 {
     const py = this.y - point.y;
     const pz = this.z - point.z;
 
-    const rotatedPx =
-      px *
-        (normalizedQw * normalizedQw +
-          normalizedQx * normalizedQx -
-          normalizedQy * normalizedQy -
-          normalizedQz * normalizedQz) +
-      py * (2 * normalizedQx * normalizedQy - 2 * normalizedQw * normalizedQz) +
-      pz * (2 * normalizedQx * normalizedQz + 2 * normalizedQw * normalizedQy);
+    const rotatedPx = px * (normalizedQw * normalizedQw + normalizedQx * normalizedQx - normalizedQy * normalizedQy - normalizedQz * normalizedQz) +
+                      py * (2 * normalizedQx * normalizedQy - 2 * normalizedQw * normalizedQz) +
+                      pz * (2 * normalizedQx * normalizedQz + 2 * normalizedQw * normalizedQy);
 
-    const rotatedPy =
-      px * (2 * normalizedQx * normalizedQy + 2 * normalizedQw * normalizedQz) +
-      py *
-        (normalizedQw * normalizedQw -
-          normalizedQx * normalizedQx +
-          normalizedQy * normalizedQy -
-          normalizedQz * normalizedQz) +
-      pz * (2 * normalizedQy * normalizedQz - 2 * normalizedQw * normalizedQx);
+    const rotatedPy = px * (2 * normalizedQx * normalizedQy + 2 * normalizedQw * normalizedQz) +
+                      py * (normalizedQw * normalizedQw - normalizedQx * normalizedQx + normalizedQy * normalizedQy - normalizedQz * normalizedQz) +
+                      pz * (2 * normalizedQy * normalizedQz - 2 * normalizedQw * normalizedQx);
 
-    const rotatedPz =
-      px * (2 * normalizedQx * normalizedQz - 2 * normalizedQw * normalizedQy) +
-      py * (2 * normalizedQy * normalizedQz + 2 * normalizedQw * normalizedQx) +
-      pz *
-        (normalizedQw * normalizedQw -
-          normalizedQx * normalizedQx -
-          normalizedQy * normalizedQy +
-          normalizedQz * normalizedQz);
+    const rotatedPz = px * (2 * normalizedQx * normalizedQz - 2 * normalizedQw * normalizedQy) +
+                      py * (2 * normalizedQy * normalizedQz + 2 * normalizedQw * normalizedQx) +
+                      pz * (normalizedQw * normalizedQw - normalizedQx * normalizedQx - normalizedQy * normalizedQy + normalizedQz * normalizedQz);
     return new vec3(
       rotatedPx + point.x,
       rotatedPy + point.y,
-      rotatedPz + point.z
-    );
+      rotatedPz + point.z,
+    )
   }
 }
 
@@ -260,18 +269,18 @@ class ray {
     this.direction = direction;
   }
 
-  intersectVertex(vertex, radius = 0.01) {
-    const oppositeVertex = new vec3(-vertex.x, -vertex.y, -vertex.z);
+  intersectVertex(vertex, radius = .01) {
+    const oppositeVertex = new vec3 (-vertex.x, -vertex.y, -vertex.z)
     const oc = this.origin.getTranslated(oppositeVertex);
     const a = this.direction.dotProduct(this.direction);
     const b = 2 * oc.dotProduct(this.direction);
-    const c = oc.dotProduct(oc) - radius ** 2;
-    const disc = b ** 2 - 4 * a * c;
-
+    const c = oc.dotProduct(oc) - radius**2;
+    const disc = b**2 - 4*a*c;
+    
     if (disc < 0) {
       return false;
     }
-
+    
     const distSqrt = Math.sqrt(disc);
     let q;
     if (b < 0) {
@@ -279,8 +288,8 @@ class ray {
     } else {
       q = (-b + distSqrt) / 2.0;
     }
-    const t0 = q / a;
-    const t1 = c / q;
+    const t0 = q/a;
+    const t1 = c/q;
 
     if (t0 > t1) {
       let temp = t0;
@@ -310,44 +319,22 @@ class vec3 {
     this.z = this.z * scaleFactor;
   }
   dilate(x) {
-    return new vec3(this.x / x, this.y / x, this.z / x);
+    return new vec3(
+      this.x / x,
+      this.y / x,
+      this.z / x
+    );
   }
   rotate(rotation) {
-    let w = Math.cos(rotation.x / 2);
-    let i = this.x * Math.sin(rotation.x / 2);
-    let j = this.y * Math.sin(rotation.y / 2);
-    let k = this.z * Math.sin(rotation.z / 2);
+    let w = Math.cos(rotation.x/2);
+    let i = this.x * Math.sin(rotation.x/2);
+    let j = this.y * Math.sin(rotation.y/2);
+    let k = this.z * Math.sin(rotation.z/2);
 
     // Apply rotation
-    let dx =
-      w * w * this.x +
-      2 * this.y * i -
-      2 * this.z * j +
-      i * i * this.x +
-      2 * this.y * j +
-      2 * this.z * k -
-      j * j * this.x -
-      k * k * this.x;
-    let dy =
-      2 * this.x * i +
-      w * w * this.y +
-      2 * this.z * k -
-      2 * j * i +
-      2 * this.x * j +
-      i * i * this.y -
-      j * j * this.y +
-      2 * this.z * i +
-      k * k * this.y;
-    let dz =
-      2 * this.x * i -
-      2 * this.y * k +
-      w * w * this.z +
-      2 * j * i +
-      2 * this.x * k +
-      2 * this.y * j -
-      i * i * this.z +
-      j * j * this.z +
-      k * k * this.z;
+    let dx = w*w*this.x + 2*this.y*i - 2*this.z*j + i*i*this.x + 2*this.y*j + 2*this.z*k - j*j*this.x - k*k*this.x;
+    let dy = 2*this.x*i + w*w*this.y + 2*this.z*k - 2*j*i + 2*this.x*j + i*i*this.y - j*j*this.y + 2*this.z*i + k*k*this.y;
+    let dz = 2*this.x*i - 2*this.y*k + w*w*this.z + 2*j*i + 2*this.x*k + 2*this.y*j - i*i*this.z + j*j*this.z + k*k*this.z;
 
     this.x = dx;
     this.y = dy;
@@ -357,10 +344,7 @@ class vec3 {
     const qx = Math.sin(rotation.x / 2);
     const qy = Math.sin(rotation.y / 2);
     const qz = Math.sin(rotation.z / 2);
-    const qw =
-      Math.cos(rotation.x / 2) *
-      Math.cos(rotation.y / 2) *
-      Math.cos(rotation.z / 2);
+    const qw = Math.cos(rotation.x / 2) * Math.cos(rotation.y / 2) * Math.cos(rotation.z / 2);
 
     // Normalize the quaternion
     const magnitude = Math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw);
@@ -374,37 +358,22 @@ class vec3 {
     const py = this.y - point.y;
     const pz = this.z - point.z;
 
-    const rotatedPx =
-      px *
-        (normalizedQw * normalizedQw +
-          normalizedQx * normalizedQx -
-          normalizedQy * normalizedQy -
-          normalizedQz * normalizedQz) +
-      py * (2 * normalizedQx * normalizedQy - 2 * normalizedQw * normalizedQz) +
-      pz * (2 * normalizedQx * normalizedQz + 2 * normalizedQw * normalizedQy);
+    const rotatedPx = px * (normalizedQw * normalizedQw + normalizedQx * normalizedQx - normalizedQy * normalizedQy - normalizedQz * normalizedQz) +
+                      py * (2 * normalizedQx * normalizedQy - 2 * normalizedQw * normalizedQz) +
+                      pz * (2 * normalizedQx * normalizedQz + 2 * normalizedQw * normalizedQy);
 
-    const rotatedPy =
-      px * (2 * normalizedQx * normalizedQy + 2 * normalizedQw * normalizedQz) +
-      py *
-        (normalizedQw * normalizedQw -
-          normalizedQx * normalizedQx +
-          normalizedQy * normalizedQy -
-          normalizedQz * normalizedQz) +
-      pz * (2 * normalizedQy * normalizedQz - 2 * normalizedQw * normalizedQx);
+    const rotatedPy = px * (2 * normalizedQx * normalizedQy + 2 * normalizedQw * normalizedQz) +
+                      py * (normalizedQw * normalizedQw - normalizedQx * normalizedQx + normalizedQy * normalizedQy - normalizedQz * normalizedQz) +
+                      pz * (2 * normalizedQy * normalizedQz - 2 * normalizedQw * normalizedQx);
 
-    const rotatedPz =
-      px * (2 * normalizedQx * normalizedQz - 2 * normalizedQw * normalizedQy) +
-      py * (2 * normalizedQy * normalizedQz + 2 * normalizedQw * normalizedQx) +
-      pz *
-        (normalizedQw * normalizedQw -
-          normalizedQx * normalizedQx -
-          normalizedQy * normalizedQy +
-          normalizedQz * normalizedQz);
+    const rotatedPz = px * (2 * normalizedQx * normalizedQz - 2 * normalizedQw * normalizedQy) +
+                      py * (2 * normalizedQy * normalizedQz + 2 * normalizedQw * normalizedQx) +
+                      pz * (normalizedQw * normalizedQw - normalizedQx * normalizedQx - normalizedQy * normalizedQy + normalizedQz * normalizedQz);
     return new vec3(
       rotatedPx + point.x,
       rotatedPy + point.y,
-      rotatedPz + point.z
-    );
+      rotatedPz + point.z,
+    )
   }
   normalizeToWorld() {
     this.x =
@@ -416,9 +385,11 @@ class vec3 {
   }
   projectToScreen(camera, screenW, screenH) {
     const pointTranslated = new vec3(this.x, this.y, this.z);
-    pointTranslated.translate(
-      new vec3(-camera.pos.x, -camera.pos.y, -camera.pos.z)
-    );
+    pointTranslated.translate(new vec3(
+      -camera.pos.x,
+      -camera.pos.y,
+      -camera.pos.z
+    ))
     const distanceRatio = 1 / Math.tan(camera.fov / 2);
     const aspectRatio = screenW / screenH;
     const pointProjected = new vec2(
@@ -436,12 +407,12 @@ class vec3 {
       this.x + translation.x,
       this.y + translation.y,
       this.z + translation.z
-    );
+    )
   }
   translate(translation) {
     this.x += translation.x;
     this.y += translation.y;
-    this.z += translation.z;
+    this.z += translation.z
   }
   crossProduct(v) {
     return new vec3(
@@ -451,18 +422,18 @@ class vec3 {
     );
   }
   dotProduct(v) {
-    return this.x * v.x + this.y * v.y + this.z * v.z;
+    return (
+      this.x*v.x + this.y*v.y + this.z*v.z
+    );
   }
-  set(x, y, z) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
+  set(x,y,z) {
+    this.x = x; this.y = y; this.z = z;
   }
   magnitude() {
-    return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+    return Math.sqrt(this.x*this.x + this.y*this.y + this.z*this.z)
   }
   toMatrix() {
-    return [this.x, this.y, this.z];
+    return [this.x,this.y,this.z];
   }
   normalize() {
     const magnitude = this.magnitude();
@@ -475,40 +446,38 @@ class vec3 {
   }
 }
 
-class entity extends parent {
+class entity extends parent{
   type;
   vertices;
   attribs;
   children;
-  constructor(type = null, vertices = [], attribs = {}, children = []) {
-    super();
+  constructor(
+    type = null,
+    vertices = [],
+    attribs = {},
+    children = []
+  ) {
+    super()
     this.type = type;
     this.vertices = vertices;
     this.attribs = attribs;
-    this.children = children;
+    this.children = children
   }
   //will probably need to change this in some way
   doesRayIntersect(ray) {
     if (this.vertices.length > 0) {
-      for (let i = 0; i < this.vertices.length; i++) {
-        if (ray.intersectVertex(this.vertices[i])) {
-          return this.vertices[i];
-        }
+      for (let i=0; i < this.vertices.length; i++) {
+        return ray.intersectVertex(this.vertices[i])
       }
     }
     if (this.children.length > 0) {
-      const hits = [];
-      for (let c = 0; c < this.children.length; c++) {
+      for (let c=0; c < this.children.length; c++) {
         const result = this.children[c].doesRayIntersect(ray);
-        if (result) {
-          hits.push(result);
+        if (result === true) {
+          return true;
         }
       }
-      if (hits.length > 0) {
-        return hits;
-      }
     }
-
     return false;
   }
   first() {
@@ -519,7 +488,7 @@ class entity extends parent {
   }
   normalizeToWorld() {
     if (this.children.length !== 0) {
-      for (let i = 0; i < this.children.length; i++) {
+      for (let i=0; i < this.children.length; i++) {
         this.children[i].normalizeToWorld();
       }
     }
@@ -538,36 +507,42 @@ class entity extends parent {
 }
 class Camera {
   static pos = new vec3(0, 0, -1);
-  static rotation = new vec3(0, 0, 0);
+  static rotation = new vec3(0,0,0);
   static fov = 45;
   static near = 0.01;
-  static far = 1000;
+  static far = 1000
 
   static setPos(x, y, z) {
     this.pos.x = x;
     this.pos.y = y;
     this.pos.z = z;
+    Scene.update(false)
   }
   static rotate(x, y, z) {
-    this.rotation.x += x;
-    this.rotation.y += y;
-    this.rotation.z += z;
-  }
+    this.rotation.x +=x;
+    this.rotation.y +=y;
+    this.rotation.z +=z;
+    Scene.update(false);
+}
   static translate(x, y, z) {
     this.pos.x += x;
     this.pos.y += y;
     this.pos.z += z;
-  }
-  static update(canvasChange) {
-    Scene.update(canvasChange);
+    Scene.update(false);
   }
   static getPos() {
     return this.pos;
   }
   static isInView(p) {
-    const d = new vec3(this.pos.x - p.x, this.pos.y - p.y, this.pos.z - p.z);
+    const d = new vec3(
+      this.pos.x - p.x,
+      this.pos.y - p.y,
+      this.pos.z - p.z
+    );
     d.normalize();
-    const dp = d.dotProduct(new vec3(0, 0, -1));
+    const dp = d.dotProduct(new vec3(
+      0,0,-1
+    ));
     const fovInRad = this.fov * (Math.PI / 180);
     const cosFov = Math.cos(fovInRad);
     return dp > cosFov;
@@ -575,8 +550,8 @@ class Camera {
 }
 //0 for 2d  | 1 for 3d
 class Renderer {
-  static canvas = document.getElementById("drawing-canvas");
-  static context = this.canvas.getContext("2d");
+  static canvas = document.getElementById("drawing-canvas");;
+  static context = this.canvas.getContext("2d");;
   static init() {
     this.canvas = document.getElementById("drawing-canvas");
     this.context = this.canvas.getContext("2d");
@@ -586,14 +561,8 @@ class Renderer {
     this.canvas.height = this.canvas.height;
   }
   static drawLine(p1, p2) {
-    const p1Rotated = p1.rotateAboutPoint(
-      Camera.rotation,
-      Scene.centroidOfEnts
-    );
-    const p2Rotated = p2.rotateAboutPoint(
-      Camera.rotation,
-      Scene.centroidOfEnts
-    );
+    const p1Rotated = p1.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
+    const p2Rotated = p2.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
     if (Camera.isInView(p1Rotated) && Camera.isInView(p2Rotated)) {
       const p1OnScreen = p1Rotated.projectToScreen(
         Camera,
@@ -604,44 +573,34 @@ class Renderer {
         Camera,
         this.canvas.width,
         this.canvas.height
-      );
-      Renderer.putPoint(p1OnScreen);
-      Renderer.putPoint(p2OnScreen);
-      this.context.beginPath();
-      this.context.moveTo(p1OnScreen.x, p1OnScreen.y);
-      this.context.lineTo(p2OnScreen.x, p2OnScreen.y);
-      this.context.stroke();
-      this.context.closePath();
+        );
+        Renderer.putPoint(p1OnScreen);
+        Renderer.putPoint(p2OnScreen);
+        this.context.beginPath();
+        this.context.moveTo(p1OnScreen.x, p1OnScreen.y);
+        this.context.lineTo(p2OnScreen.x, p2OnScreen.y);
+        this.context.stroke();
+        this.context.closePath();
     }
   }
-  static putPoint(p, color = "red") {
-    const size = 4;
+  static putPoint(p, color="red") {
+    const size = 4
     this.context.fillStyle = color;
-    this.context.fillRect(p.x, p.y, 1, 1);
-    this.context.fillRect(p.x - 1, p.y - 1, size, size);
-    this.context.fillRect(p.x + 1, p.y + 1, size, size);
-    this.context.fillRect(p.x - 1, p.y + 1, size, size);
-    this.context.fillRect(p.x + 1, p.y - 1, size, size);
-    this.context.fillRect(p.x + 1, p.y - 1, size, size);
+    this.context.fillRect(p.x,p.y,1,1);
+    this.context.fillRect(p.x-1,p.y-1,size,size);
+    this.context.fillRect(p.x+1,p.y+1,size,size);
+    this.context.fillRect(p.x-1,p.y+1,size,size);
+    this.context.fillRect(p.x+1,p.y-1,size,size);
+    this.context.fillRect(p.x+1,p.y-1,size,size);
   }
   static drawPoint(point) {
-    const pointRotated = point.vertices[0].rotateAboutPoint(
-      Camera.rotation,
-      Scene.centroidOfEnts
-    );
-    const pointOnScreen = pointRotated.projectToScreen(
-      Camera,
-      this.canvas.width,
-      this.canvas.height
-    );
+    const pointRotated = point.vertices[0].rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
+    const pointOnScreen = pointRotated.projectToScreen(Camera, this.canvas.width, this.canvas.height);
     Renderer.putPoint(pointOnScreen);
   }
   static drawArc(arc) {
     const p1 = arc.vertices[0];
-    const p1Rotated = p1.rotateAboutPoint(
-      Camera.rotation,
-      Scene.centroidOfEnts
-    );
+    const p1Rotated = p1.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
     if (!Camera.isInView(p1Rotated)) {
       return;
     }
@@ -649,37 +608,31 @@ class Renderer {
       Camera,
       this.canvas.width,
       this.canvas.height
-    );
+      );
     this.context.beginPath();
     this.context.moveTo(p1OnScreen.x, p1OnScreen.y);
     // Draw lines to the rest of the points
     for (let i = 1; i < arc.vertices.length; i++) {
-      const p2 = arc.vertices[i];
-      const p2Rotated = p2.rotateAboutPoint(
-        Camera.rotation,
-        Scene.centroidOfEnts
-      );
-      if (!Camera.isInView(p2Rotated)) {
-        return;
-      }
-      const p2OnScreen = p2Rotated.projectToScreen(
+      const p2 = arc.vertices[i]
+        const p2Rotated = p2.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
+        if (!Camera.isInView(p2Rotated)) {
+          return;
+        }
+        const p2OnScreen = p2Rotated.projectToScreen(
+          Camera,
+          this.canvas.width,
+          this.canvas.height
+          );
+          this.context.lineTo(p2OnScreen.x, p2OnScreen.y);
+        }
+    this.context.stroke();
+    this.context.closePath();
+    const p2 = arc.vertices[99];
+    const p2Rotated = p2.rotateAboutPoint(Camera.rotation, Scene.centroidOfEnts);
+    const p2OnScreen = p2Rotated.projectToScreen(
         Camera,
         this.canvas.width,
         this.canvas.height
-      );
-      this.context.lineTo(p2OnScreen.x, p2OnScreen.y);
-    }
-    this.context.stroke();
-    this.context.closePath();
-    const p2 = arc.vertices[arc.vertices.length - 1];
-    const p2Rotated = p2.rotateAboutPoint(
-      Camera.rotation,
-      Scene.centroidOfEnts
-    );
-    const p2OnScreen = p2Rotated.projectToScreen(
-      Camera,
-      this.canvas.width,
-      this.canvas.height
     );
     Renderer.putPoint(p1OnScreen);
     Renderer.putPoint(p2OnScreen);
@@ -688,49 +641,43 @@ class Renderer {
 
 class Scene {
   static entities = [];
-  static centroidOfEnts = new vec3(0, 0, 0);
+  static centroidOfEnts = new vec3(0,0,0);
   static init() {
-    window.addEventListener(
-      "resize",
-      () => {
-        Scene.update(true);
-      },
-      false
-    );
+    window.addEventListener("resize", () => { Scene.update(true) }, false);
     Scene.update(true);
     MouseInput.init();
   }
   static findVertexIntersects(ray) {
-    for (let i = 0; i < this.entities.length; i++) {
+    for (let i=0; i < this.entities.length; i++) {
       const result = this.entities[i].doesRayIntersect(ray);
       if (result) {
-        console.log(result);
+        console.log(i,"hit");
       }
     }
   }
   static findCentroid() {
     let vertCnt = 0;
-    Scene.centroidOfEnts = new vec3(0, 0, 0);
-    function getCoords(e) {
+    Scene.centroidOfEnts = new vec3(0,0,0);
+    function getCoords(e) {  
       switch (e.type) {
-        case "LINE": {
+        case("LINE"): {
           Scene.centroidOfEnts.translate(e.vertices[0]);
           Scene.centroidOfEnts.translate(e.vertices[0]);
-          vertCnt += 2;
+          vertCnt +=2;
           break;
         }
-        case "CIRCLE": {
+        case("CIRCLE"): {
           Scene.centroidOfEnts.translate(e.vertices[0]);
-          vertCnt += 1;
+          vertCnt +=1;
           break;
         }
-        case "ARC": {
+        case("ARC"): {
           Scene.centroidOfEnts.translate(e.vertices[0]);
-          vertCnt += 1;
+          vertCnt +=1;
           break;
         }
         default: {
-          for (let j = 0; j < e.vertices.length; j++) {
+          for (let j=0; j < e.vertices.length; j++) {
             getCoords(e.vertices[j]);
           }
           break;
@@ -738,7 +685,7 @@ class Scene {
       }
     }
 
-    for (let i = 0; i < Scene.entities.length; i++) {
+    for (let i=0; i < Scene.entities.length; i++) {
       const curEnt = Scene.entities[i];
       getCoords(curEnt);
     }
@@ -747,7 +694,7 @@ class Scene {
     Scene.centroidOfEnts.z = Scene.centroidOfEnts.z / vertCnt;
     Camera.pos.x = this.centroidOfEnts.x;
     Camera.pos.y = this.centroidOfEnts.y;
-    Camera.pos.z = this.centroidOfEnts.z - 0.5;
+    Camera.pos.z = this.centroidOfEnts.z - .5;
     return;
   }
   static setEntities(ents) {
@@ -756,7 +703,7 @@ class Scene {
     Camera.setPos(
       Scene.centroidOfEnts.x,
       Scene.centroidOfEnts.y,
-      Scene.centroidOfEnts.z - 0.5
+      Scene.centroidOfEnts.z - .5
     );
   }
   static addEntity(ent) {
@@ -774,14 +721,15 @@ class Scene {
   static render() {
     function renderEnt(e) {
       switch (e.type) {
+
         case "LWPOLYLINE": {
-          for (let i = 0; i < e.children.length; i++) {
+          for (let i=0; i<e.children.length; i++) {
             renderEnt(e.children[i]);
           }
           break;
         }
         case "POLYLINE": {
-          for (let i = 0; i < e.children.length; i++) {
+          for (let i=0; i<e.children.length; i++) {
             renderEnt(e.children[i]);
           }
           break;
@@ -808,122 +756,95 @@ class Scene {
   }
 }
 
-class renderedEntity {
-  positionOnScreen; //a vec3
-  parentEntity; //reference to actual entity
-  parentVectorIndex;
-  color; //changes when "focused"
-  constructor(positionOnScreen, parentEntity, parentVectorIndex, color) {
-    this.positionOnScreen = positionOnScreen;
-    this.parentEntity = parentEntity;
-    this.parentVectorIndex = parentVectorIndex;
-    this.color = color;
-  }
-}
-
-class MouseInput {
-  static active = {
-    left: false,
-    middle: false,
-    right: false,
-  };
-  static initialPosition = new vec2(0, 0);
-  //add way to check all points my ray cast goes throgh
-  static timeMoving = 11;
-  static init() {
-    document.addEventListener("mousedown", this.mouseDown.bind(this));
-    document.addEventListener("mouseup", this.mouseUp.bind(this));
-    document.addEventListener("mousemove", this.mouseMove.bind(this));
-    document.addEventListener("wheel", this.scroll.bind(this));
-  }
-  static scroll(e) {
-    if (e.deltaY > 0) {
-      this.scrollDown(e);
-    } else {
-      this.scrollUp();
+  class MouseInput {
+    static active = {
+      left: false,
+      middle: false,
+      right: false
+    };
+    static initialPosition = new vec2(0,0);
+    //add way to check all points my ray cast goes throgh
+    static timeMoving = 11;
+    static init() {
+      document.addEventListener("mousedown", this.mouseDown.bind(this))
+      document.addEventListener("mouseup", this.mouseUp.bind(this))
+      document.addEventListener("mousemove", this.mouseMove.bind(this));
+      document.addEventListener("wheel", this.scroll.bind(this))
     }
-  }
-  static mouseDown(down) {
-    switch (down.button) {
-      case 0: {
-        this.active.left = true;
-        const rect = Renderer.canvas.getBoundingClientRect();
-        const realX = down.clientX - rect.left;
-        const realY = down.clientY - rect.top;
-        this.initialPosition.x = realX;
-        this.initialPosition.y = realY;
-        this.timeMoving = 0;
-        break;
-      }
-      case 1: {
-        this.active.middle = true;
-        this.initialPosition.x = down.clientX;
-        this.initialPosition.y = down.clientY;
-        break;
+    static scroll(e) {
+        if (e.deltaY > 0) {
+          this.scrollDown(e);
+      } else {
+          this.scrollUp();
       }
     }
-  }
-  static mouseUp(up) {
-    switch (up.button) {
-      case 0: {
-        if (this.timeMoving < 10) {
-          this.handleClick();
+    static mouseDown(down) {
+      switch (down.button) {
+        case (0): {
+          this.active.left = true;
+          const rect = Renderer.canvas.getBoundingClientRect()
+          const realX = down.clientX - rect.left;
+          const realY = down.clientY - rect.top;
+          this.initialPosition.x = realX; this.initialPosition.y = realY;
+          this.timeMoving = 0;
+          break;
         }
-        this.active.left = false;
-        this.timeMoving = 11;
-        break;
-      }
-      case 1: {
-        this.active.middle = false;
-        break;
+        case (1): {
+          this.active.middle = true;
+          this.initialPosition.x = down.clientX; this.initialPosition.y = down.clientY;
+          break;
+        }
       }
     }
-  }
-  static mouseMove(e) {
-    //add holding both left and right click allow you to move and spin
-    this.timeMoving++;
-    if (this.active.left === true && this.timeMoving > 10) {
-      const rect = Renderer.canvas.getBoundingClientRect();
-      const realX = e.clientX - rect.left;
-      const realY = e.clientY - rect.top;
-      let deltaX = this.initialPosition.x - realX;
-      let deltaY = this.initialPosition.y - realY;
-      const scalar = clamp(0.0001 / Camera.pos.magnitude(), 0.00001, 0.005);
-      Camera.translate(deltaX * scalar, deltaY * scalar, 0);
-      this.initialPosition.x = realX;
-      this.initialPosition.y = realY;
-      setTimeout(null, 20);
+    static mouseUp(up) {
+      switch (up.button) {
+        case (0): {
+          if (this.timeMoving < 10) {
+            this.handleClick();
+          }
+          this.active.left = false;
+          this.timeMoving = 11;
+          break;
+        }
+        case (1): {
+          this.active.middle = false;
+          break
+        }
+      }
     }
-    if (this.active.middle === true) {
-      const rect = Renderer.canvas.getBoundingClientRect();
-      const realX = e.clientX - rect.left;
-      const realY = e.clientY - rect.top;
-      let deltaX = this.initialPosition.x - realX;
-      let deltaY = this.initialPosition.y - realY;
-      const scalar = clamp(0.0001 / Camera.pos.magnitude(), 0.01, 0.005);
-      Camera.rotate(-(deltaY * scalar), deltaX * scalar, 0, 0);
-      this.initialPosition.x = realX;
-      this.initialPosition.y = realY;
-      setTimeout(null, 20);
+    static mouseMove(e) {
+      this.timeMoving++;
+      if (this.active.left === true && this.timeMoving > 10) {
+        let deltaX = (this.initialPosition.x - e.clientX);
+        let deltaY = (this.initialPosition.y - e.clientY);
+        const scalar = clamp(.0001 / Camera.pos.magnitude(), .00001, .005);
+        Camera.translate(deltaX * scalar, deltaY * scalar, 0);
+        this.initialPosition.x = e.clientX;
+        this.initialPosition.y = e.clientY;
+        setTimeout(null, 20);
+      }
+      if (this.active.middle === true) {
+        let deltaX = (this.initialPosition.x - e.clientX);
+        let deltaY = (this.initialPosition.y - e.clientY);
+        const scalar = clamp(.0001 / Camera.pos.magnitude(), .01, .005);
+        Camera.rotate(-(deltaY * scalar), deltaX * scalar,0,0)
+        this.initialPosition.x = e.clientX;
+        this.initialPosition.y = e.clientY;
+        setTimeout(null, 20);
+      }
     }
-    Scene.update(false);
-  }
-  static scrollDown() {
-    Camera.translate(0, 0, -0.001);
-    Scene.update(false);
-  }
-  static scrollUp() {
-    Camera.translate(0, 0, 0.001);
-    Scene.update(false);
-  }
-  static handleClick(button) {
-    const inWorld = this.initialPosition.screenToWorld(
-      Camera,
-      Renderer.canvas.width,
-      Renderer.canvas.height
-    );
-    Scene.findVertexIntersects(inWorld);
-  }
+    static scrollDown() {
+      Camera.translate(0,0,-.01);
+    }
+    static scrollUp() {
+      Camera.translate(0,0,.01);
+    }
+    static handleClick(button) {
+      const inWorld = this.initialPosition.screenToWorld(Camera, Renderer.canvas.width, Renderer.canvas.height) 
+      console.log(inWorld)
+      Scene.addEntity(new entity("LINE", [inWorld.origin, inWorld.direction]))
+      Scene.findVertexIntersects(inWorld)
+    }
 }
 
 class outFile {
@@ -936,6 +857,7 @@ class outFile {
     this.type = type;
   }
 }
+
 
 export {
   Renderer,
@@ -955,3 +877,4 @@ export {
   WorldSpaceSize,
   scaleFactor,
 };
+
